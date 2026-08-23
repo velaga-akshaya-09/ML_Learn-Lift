@@ -66,6 +66,7 @@
         <div class="tabs">
             <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">🗃️ 1. Main Page (Raw Dataset)</a>
             <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">📊 2. Exploratory Data Analysis</a>
+            <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">⚙️ 3. Preprocessing</a>
         </div>
 
         {% if active == 'data-loading' %}
@@ -338,13 +339,229 @@
 
         </main>
         {% endif %}
+
+        {% if active == 'preprocessing' %}
+        <!-- PREPROCESSING TAB -->
+        <main id="preprocessing-tab" class="tab-content active">
+            <h2>3. Data Preprocessing & Feature Scaling</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px;">
+                Inspect outlier detection & IQR clipping, Min-Max feature scaling (0 to 1 range), and Standard feature scaling (&mu;=0, &sigma;=1).
+            </p>
+
+            {% if preprocessing %}
+            <!-- Outlier Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Dataset Shape</h3>
+                    <p>({{ preprocessing.n_rows }}, {{ preprocessing.n_cols }})</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Total Records & Features</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Outliers Fixed</h3>
+                    <p style="color: #facc15;">{{ preprocessing.total_outliers }}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Clipped using 1.5 &times; IQR bounds</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Scaled Features</h3>
+                    <p style="color: #60a5fa;">{{ preprocessing.numeric_columns | length }}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Numeric columns processed</span>
+                </div>
+            </div>
+
+            <!-- Imputation & Outliers breakdown tables -->
+            <div class="chart-grid" style="margin-top: 25px;">
+                <div class="table-container">
+                    <h3>Missing Value Imputation Summary</h3>
+                    <table style="margin-top: 15px;">
+                        <thead>
+                            <tr>
+                                <th>Feature Name</th>
+                                <th>Missing Values Count</th>
+                                <th>Imputation Strategy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col, count in preprocessing.imputation_summary.items() %}
+                                <tr>
+                                    <td><strong><code>{{ col }}</code></strong></td>
+                                    <td>
+                                        {% if count > 0 %}
+                                            <span style="color: #f87171; font-weight: bold;">{{ count }}</span>
+                                        {% else %}
+                                            <span style="color: #34d399;">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if col == 'avg_score' %}
+                                            <span style="color: #38bdf8; font-size: 0.85rem;">Median Score Imputation</span>
+                                        {% else %}
+                                            <span style="color: #a78bfa; font-size: 0.85rem;">Mode Category Imputation</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-container">
+                    <h3>Outlier Detection Breakdown (1.5 &times; IQR Clipping)</h3>
+                    <table style="margin-top: 15px;">
+                        <thead>
+                            <tr>
+                                <th>Numerical Feature</th>
+                                <th>Outliers Count</th>
+                                <th>Action Taken</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col, count in preprocessing.outlier_counts.items() %}
+                                <tr>
+                                    <td><strong><code>{{ col }}</code></strong></td>
+                                    <td>
+                                        {% if count > 0 %}
+                                            <span style="color: #fb7185; font-weight: bold;">{{ count }}</span>
+                                        {% else %}
+                                            <span style="color: #34d399;">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span style="color: #38bdf8; font-size: 0.85rem;">Clipped to [Q1 - 1.5*IQR, Q3 + 1.5*IQR]</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sub-nav for Preprocessing views -->
+            <div class="sub-nav" style="margin-top: 30px;">
+                <button class="sub-nav-btn active" onclick="switchPreprocView('orig')">📄 Original Numerical Values</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('minmax')">📐 Min-Max Scaled [0, 1]</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('standard')">📊 Standard Scaled (&mu;=0, &sigma;=1)</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('encoded')">🏷️ Encoded Categoricals (Ordinal & Binary)</button>
+            </div>
+
+            <!-- Original Preview -->
+            <div id="preproc-orig-view" class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Original Numerical Features Preview (Top 10 Records)</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Unscaled Values</span>
+                </div>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.numeric_columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.original_preview %}
+                                <tr>
+                                    {% for col in preprocessing.numeric_columns %}
+                                        <td>{{ row[col] if row[col] is not none else 'NaN' }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Min-Max Scaled Preview -->
+            <div id="preproc-minmax-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Min-Max Scaled Preview (Top 10 Records) <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">MinMaxScaler</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Scaled between 0.0 and 1.0</span>
+                </div>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.numeric_columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.minmax_preview %}
+                                <tr>
+                                    {% for col in preprocessing.numeric_columns %}
+                                        <td><strong style="color: #60a5fa;">{{ row[col] }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Standard Scaled Preview -->
+            <div id="preproc-standard-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Standard Scaled Preview (Top 10 Records) <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">StandardScaler</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Standardized (Z-score: Mean=0, Std=1)</span>
+                </div>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.numeric_columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.standard_preview %}
+                                <tr>
+                                    {% for col in preprocessing.numeric_columns %}
+                                        <td><strong style="color: #c084fc;">{{ row[col] }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Encoded Categorical Preview -->
+            <div id="preproc-encoded-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Encoded Categorical & Ordinal Features Preview (Top 10 Records) <span style="background: rgba(52, 211, 153, 0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">OULAD Category Mapping</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Mapped to Numerical Integer Representations</span>
+                </div>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.encoded_columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.encoded_preview %}
+                                <tr>
+                                    {% for col in preprocessing.encoded_columns %}
+                                        <td><strong style="color: #34d399;">{{ row[col] }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+        {% endif %}
     </div>
 
     <script>
         function switchDataView(viewType) {
             const rawView = document.getElementById('raw-view');
             const cleanView = document.getElementById('clean-view');
-            const buttons = document.querySelectorAll('.sub-nav-btn');
+            const buttons = document.querySelectorAll('#data-tab .sub-nav-btn');
 
             if (viewType === 'raw') {
                 rawView.style.display = 'block';
@@ -356,6 +573,26 @@
                 cleanView.style.display = 'block';
                 buttons[0].classList.remove('active');
                 buttons[1].classList.add('active');
+            }
+        }
+
+        function switchPreprocView(viewType) {
+            const origView = document.getElementById('preproc-orig-view');
+            const minmaxView = document.getElementById('preproc-minmax-view');
+            const standardView = document.getElementById('preproc-standard-view');
+            const encodedView = document.getElementById('preproc-encoded-view');
+            const btns = document.querySelectorAll('#preprocessing-tab .sub-nav-btn');
+
+            if (origView && minmaxView && standardView && encodedView && btns.length >= 4) {
+                origView.style.display = viewType === 'orig' ? 'block' : 'none';
+                minmaxView.style.display = viewType === 'minmax' ? 'block' : 'none';
+                standardView.style.display = viewType === 'standard' ? 'block' : 'none';
+                encodedView.style.display = viewType === 'encoded' ? 'block' : 'none';
+
+                btns[0].classList.toggle('active', viewType === 'orig');
+                btns[1].classList.toggle('active', viewType === 'minmax');
+                btns[2].classList.toggle('active', viewType === 'standard');
+                btns[3].classList.toggle('active', viewType === 'encoded');
             }
         }
     </script>

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for
 from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
+from preprocessing import run_preprocessing
 
 app = Flask(__name__)
 
@@ -10,7 +11,8 @@ cache = {
     "summary_raw": None,
     "df_clean": None,
     "summary_clean": None,
-    "charts": None
+    "charts": None,
+    "preprocessing": None
 }
 
 @app.route("/")
@@ -68,6 +70,25 @@ def eda():
         "index.html",
         active="eda",
         charts=cache["charts"],
+        error=error
+    )
+
+@app.route("/preprocessing")
+def preprocessing():
+    error = None
+
+    try:
+        if cache["preprocessing"] is None:
+            cache["preprocessing"] = run_preprocessing()
+    except FileNotFoundError as e:
+        error = str(e)
+    except Exception as e:
+        error = f"Unexpected error: {e}"
+
+    return render_template(
+        "index.html",
+        active="preprocessing",
+        preprocessing=cache["preprocessing"],
         error=error
     )
 
