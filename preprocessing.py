@@ -1,229 +1,868 @@
+import os
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    StandardScaler,
+    OneHotEncoder,
+    OrdinalEncoder
+)
+
+from sklearn.model_selection import train_test_split
+
 from load_data import load_data
 
-# =====================================================
-# OULAD Dataset Specific Numeric Columns & Ordinal Maps
-# =====================================================
 
-NUMERIC_COLUMNS = [
+# ============================================================
+# OULAD DATASET COLUMNS
+# ============================================================
+
+NUM_COLS = [
     "studied_credits",
     "avg_score",
     "num_of_prev_attempts"
 ]
 
-AGE_BAND_MAP = {
-    "0-35": 0,
-    "35-55": 1,
-    "55<=": 2
-}
+CATEGORICAL_COLS = [
+    "code_module",
+    "code_presentation",
+    "gender",
+    "region",
+    "disability"
+]
 
-HIGHEST_EDU_MAP = {
-    "No Formal quals": 0,
-    "Lower Than A Level": 1,
-    "A Level or Equivalent": 2,
-    "HE Qualification": 3,
-    "Post Graduate Qualification": 4
-}
+ORDINAL_COLS = [
+    "highest_education",
+    "age_band",
+    "imd_band"
+]
 
-IMD_BAND_MAP = {
-    "0-10%": 0,
-    "10-20%": 1,
-    "20-30%": 2,
-    "30-40%": 3,
-    "40-50%": 4,
-    "50-60%": 5,
-    "60-70%": 6,
-    "70-80%": 7,
-    "80-90%": 8,
-    "90-100%": 9
-}
+TARGET_COL = "final_result"
 
-GENDER_MAP = {"F": 0, "M": 1}
-DISABILITY_MAP = {"N": 0, "Y": 1}
-FINAL_RESULT_MAP = {
-    "Withdrawn": 0,
-    "Fail": 1,
-    "Pass": 2,
-    "Distinction": 3
-}
+# All numeric columns used for IQR outlier analysis (display + detection)
+IQR_NUMERIC_COLS = [
+    "studied_credits",
+    "avg_score",
+    "num_of_prev_attempts"
+]
 
-# =====================================================
-# Task 0 : Missing Value Imputation
-# =====================================================
+IQR_COL = "studied_credits"
 
-def impute_missing(data):
-    """Imputes missing values in OULAD dataset (avg_score with median, imd_band with mode)."""
-    data = data.copy()
-    imputed_counts = {}
+N_NUMERIC_FEATURES = len(NUM_COLS)
+N_CATEGORICAL_FEATURES = len(CATEGORICAL_COLS) + len(ORDINAL_COLS)
 
-    if 'avg_score' in data.columns:
-        null_count = int(data['avg_score'].isnull().sum())
-        imputed_counts['avg_score'] = null_count
-        if null_count > 0:
-            median_score = data['avg_score'].median()
-            data['avg_score'] = data['avg_score'].fillna(median_score)
 
-    if 'imd_band' in data.columns:
-        null_count = int(data['imd_band'].isnull().sum())
-        imputed_counts['imd_band'] = null_count
-        if null_count > 0:
-            mode_band = data['imd_band'].mode()[0] if not data['imd_band'].mode().empty else "10-20%"
-            data['imd_band'] = data['imd_band'].fillna(mode_band)
+# ============================================================
+# HELPER — missing values analysis
+# ============================================================
 
-    return data, imputed_counts
+def _missing_value_analysis(df, numeric_cols):
+    """
+    Returns a dict with per-column missing stats and
+    results of four handling strategies:
+      1. row-wise deletion
+      2. column-wise deletion
+      3. mean imputation
+      4. median imputation
+    """
 
-# =====================================================
-# Task 1 : Outlier Fix (1.5 x IQR Clipping)
-# =====================================================
+    total_rows = len(df)
 
-def fix_outliers(data):
-    """Clips outliers in numeric features using 1.5 x IQR limits."""
-    data = data.copy()
-    numeric_cols = [col for col in NUMERIC_COLUMNS if col in data.columns]
-    outlier_counts = {}
+    # Per-column missing info
+    col_info = {}
+    for col in df.columns:
+        n_miss = int(df[col].isnull().sum())
+        col_info[col] = {
+            "missing": n_miss,
+            "pct":     round(n_miss / total_rows * 100, 4),
+            "dtype":   str(df[col].dtype),
+        }
 
-    for col in numeric_cols:
-        col_data = data[col].dropna()
-        if col_data.empty:
-            outlier_counts[col] = 0
+    missing_cols = {c: v for c, v in col_info.items() if v["missing"] > 0}
+    total_missing_cells = sum(v["missing"] for v in col_info.values())
+    rows_with_any_missing = int(df.isnull().any(axis=1).sum())
+
+    # ---- 1. Row-wise deletion ----
+    df_rowdrop = df.dropna()
+    rows_dropped  = total_rows - len(df_rowdrop)
+    rowdrop_pct   = round(rows_dropped / total_rows * 100, 4)
+    rowdrop_applicable = rows_dropped < total_rows * 0.05  # < 5% loss
+
+    rowdrop_result = {
+        "applicable":     rowdrop_applicable,
+        "rows_before":    total_rows,
+        "rows_after":     int(len(df_rowdrop)),
+        "rows_dropped":   rows_dropped,
+        "pct_dropped":    rowdrop_pct,
+        "reason": (
+            f"Only {rows_dropped} row(s) ({rowdrop_pct}%) contain missing values. "
+            "Dropping them causes negligible data loss — row-wise deletion is safe."
+            if rowdrop_applicable else
+            f"{rows_dropped} rows ({rowdrop_pct}%) would be lost. "
+            "This is too high a data loss for row-wise deletion to be appropriate."
+        ),
+        "preview": df_rowdrop.head(3).fillna("").astype(str).to_dict(orient="records"),
+    }
+
+    # ---- 2. Column-wise deletion ----
+    # Drop columns where missing% > 30% (industry rule of thumb)
+    THRESHOLD = 30.0
+    cols_to_drop = [
+        c for c, v in col_info.items()
+        if v["missing"] > 0 and v["pct"] > THRESHOLD
+    ]
+    cols_not_dropped = [
+        c for c, v in col_info.items()
+        if v["missing"] > 0 and v["pct"] <= THRESHOLD
+    ]
+    coldrop_applicable = len(cols_to_drop) > 0
+
+    per_col_reasons = {}
+    for c, v in col_info.items():
+        if v["missing"] == 0:
             continue
+        if v["pct"] > THRESHOLD:
+            per_col_reasons[c] = {
+                "drop": True,
+                "reason": f"{v['pct']}% missing — exceeds {THRESHOLD}% threshold. Column dropped."
+            }
+        else:
+            per_col_reasons[c] = {
+                "drop": False,
+                "reason": (
+                    f"Only {v['pct']}% missing ({v['missing']} value(s)). "
+                    f"Below {THRESHOLD}% threshold — column retained, use imputation instead."
+                )
+            }
 
-        Q1 = col_data.quantile(0.25)
-        Q3 = col_data.quantile(0.75)
-        IQR = Q3 - Q1
+    coldrop_result = {
+        "applicable":      coldrop_applicable,
+        "threshold_pct":   THRESHOLD,
+        "cols_dropped":    cols_to_drop,
+        "cols_retained":   cols_not_dropped,
+        "per_col_reasons": per_col_reasons,
+        "reason": (
+            f"Columns with >{THRESHOLD}% missing data: {cols_to_drop}. These were dropped." 
+            if coldrop_applicable else
+            f"No column exceeds the {THRESHOLD}% missing threshold. "
+            "Column-wise deletion is NOT applied — all columns are retained. "
+            "Use row-wise deletion or imputation to handle the small number of missing values."
+        ),
+    }
 
-        lower_limit = Q1 - 1.5 * IQR
-        upper_limit = Q3 + 1.5 * IQR
+    # ---- 3. Mean imputation (numeric columns only) ----
+    mean_results = []
+    df_mean = df.copy()
+    for col in numeric_cols:
+        if col in df_mean.columns:
+            n = int(df_mean[col].isnull().sum())
+            if n > 0:
+                mean_val = round(float(df_mean[col].mean()), 4)
+                df_mean[col] = df_mean[col].fillna(mean_val)
+                mean_results.append({
+                    "column":    col,
+                    "n_filled":  n,
+                    "fill_value": mean_val,
+                    "applicable": True,
+                    "reason":    f"Numeric column — {n} missing value(s) replaced with mean ({mean_val})."
+                })
 
-        outliers = (col_data < lower_limit) | (col_data > upper_limit)
-        outlier_counts[col] = int(outliers.sum())
+    # Non-numeric cols with missing values
+    for col, v in col_info.items():
+        if v["missing"] > 0 and col not in numeric_cols:
+            mean_results.append({
+                "column":    col,
+                "n_filled":  v["missing"],
+                "fill_value": None,
+                "applicable": False,
+                "reason":    (
+                    f"Non-numeric column (dtype: {v['dtype']}) — mean imputation is not applicable. "
+                    "Use mode imputation or a placeholder string instead."
+                )
+            })
 
-        # Fix outliers using clipping
-        data[col] = data[col].clip(
-            lower=lower_limit,
-            upper=upper_limit
-        )
+    mean_imputation = {
+        "results": mean_results,
+        "preview": df_mean[numeric_cols].head(5).round(4).to_dict(orient="records")
+                   if numeric_cols else [],
+    }
 
-    return data, outlier_counts
+    # ---- 4. Median imputation (numeric columns only) ----
+    median_results = []
+    df_median = df.copy()
+    for col in numeric_cols:
+        if col in df_median.columns:
+            n = int(df_median[col].isnull().sum())
+            if n > 0:
+                median_val = round(float(df_median[col].median()), 4)
+                df_median[col] = df_median[col].fillna(median_val)
+                median_results.append({
+                    "column":    col,
+                    "n_filled":  n,
+                    "fill_value": median_val,
+                    "applicable": True,
+                    "reason":    f"Numeric column — {n} missing value(s) replaced with median ({median_val})."
+                })
 
-# =====================================================
-# Task 2 : Min-Max Scaling
-# =====================================================
+    for col, v in col_info.items():
+        if v["missing"] > 0 and col not in numeric_cols:
+            median_results.append({
+                "column":    col,
+                "n_filled":  v["missing"],
+                "fill_value": None,
+                "applicable": False,
+                "reason":    (
+                    f"Non-numeric column (dtype: {v['dtype']}) — median imputation is not applicable. "
+                    "Use mode imputation or a placeholder string instead."
+                )
+            })
 
-def minmax_scaling(data):
-    """Scales numeric features to range [0, 1]."""
-    data = data.copy()
-    numeric_cols = [col for col in NUMERIC_COLUMNS if col in data.columns]
-    if not numeric_cols:
-        return data
-
-    scaler = MinMaxScaler()
-    data[numeric_cols] = scaler.fit_transform(data[numeric_cols])
-    return data
-
-# =====================================================
-# Task 3 : Standard Scaling
-# =====================================================
-
-def standard_scaling(data):
-    """Standardizes numeric features (Z-score: Mean=0, Std=1)."""
-    data = data.copy()
-    numeric_cols = [col for col in NUMERIC_COLUMNS if col in data.columns]
-    if not numeric_cols:
-        return data
-
-    scaler = StandardScaler()
-    data[numeric_cols] = scaler.fit_transform(data[numeric_cols])
-    return data
-
-# =====================================================
-# Task 4 : Categorical & Ordinal Encoding
-# =====================================================
-
-def encode_categorical(data):
-    """Encodes categorical and ordinal columns into numerical values for OULAD dataset."""
-    data = data.copy()
-    encoded_cols = []
-
-    if 'age_band' in data.columns:
-        data['age_band_encoded'] = data['age_band'].map(AGE_BAND_MAP).fillna(0).astype(int)
-        encoded_cols.append('age_band_encoded')
-
-    if 'highest_education' in data.columns:
-        data['highest_education_encoded'] = data['highest_education'].map(HIGHEST_EDU_MAP).fillna(0).astype(int)
-        encoded_cols.append('highest_education_encoded')
-
-    if 'imd_band' in data.columns:
-        data['imd_band_encoded'] = data['imd_band'].map(IMD_BAND_MAP).fillna(1).astype(int)
-        encoded_cols.append('imd_band_encoded')
-
-    if 'gender' in data.columns:
-        data['gender_encoded'] = data['gender'].map(GENDER_MAP).fillna(0).astype(int)
-        encoded_cols.append('gender_encoded')
-
-    if 'disability' in data.columns:
-        data['disability_encoded'] = data['disability'].map(DISABILITY_MAP).fillna(0).astype(int)
-        encoded_cols.append('disability_encoded')
-
-    if 'final_result' in data.columns:
-        data['final_result_encoded'] = data['final_result'].map(FINAL_RESULT_MAP).fillna(1).astype(int)
-        encoded_cols.append('final_result_encoded')
-
-    return data, encoded_cols
-
-# =====================================================
-# Main Preprocessing Pipeline Function
-# =====================================================
-
-def run_preprocessing():
-    """Runs the full project-specific OULAD preprocessing pipeline."""
-    raw_data = load_data()
-    original_rows = len(raw_data)
-    original_columns = len(raw_data.columns)
-
-    # 1. Impute missing values
-    imputed_data, imputation_summary = impute_missing(raw_data)
-
-    # 2. Outlier Fix (Clipping)
-    outlier_fixed_data, outlier_counts = fix_outliers(imputed_data)
-
-    # 3. Min-Max Scaling
-    minmax_data = minmax_scaling(outlier_fixed_data)
-
-    # 4. Standard Scaling
-    standard_data = standard_scaling(outlier_fixed_data)
-
-    # 5. Categorical Encoding
-    encoded_data, encoded_cols = encode_categorical(imputed_data)
-
-    # Preview numeric columns
-    numeric_cols = [col for col in NUMERIC_COLUMNS if col in raw_data.columns]
-
-    orig_prev = raw_data[numeric_cols].head(10).round(3).replace({np.nan: None}).to_dict(orient="records")
-    minmax_prev = minmax_data[numeric_cols].head(10).round(3).replace({np.nan: None}).to_dict(orient="records")
-    standard_prev = standard_data[numeric_cols].head(10).round(3).replace({np.nan: None}).to_dict(orient="records")
-    encoded_prev = encoded_data[encoded_cols].head(10).to_dict(orient="records")
+    median_imputation = {
+        "results": median_results,
+        "preview": df_median[numeric_cols].head(5).round(4).to_dict(orient="records")
+                   if numeric_cols else [],
+    }
 
     return {
-        "n_rows": original_rows,
-        "n_cols": original_columns,
-        "numeric_columns": numeric_cols,
-        "encoded_columns": encoded_cols,
-        "imputation_summary": imputation_summary,
-        "outlier_counts": outlier_counts,
-        "total_outliers": sum(outlier_counts.values()),
-        "original_preview": orig_prev,
-        "minmax_preview": minmax_prev,
-        "standard_preview": standard_prev,
-        "encoded_preview": encoded_prev
+        "total_rows":          total_rows,
+        "total_missing_cells": total_missing_cells,
+        "rows_with_missing":   rows_with_any_missing,
+        "col_info":            col_info,
+        "missing_cols":        missing_cols,
+        "rowdrop":             rowdrop_result,
+        "coldrop":             coldrop_result,
+        "mean_imputation":     mean_imputation,
+        "median_imputation":   median_imputation,
     }
+
+
+def _iqr_outlier_analysis(df, numeric_cols):
+    """
+    IQR outlier detection across all numeric columns.
+    Returns per-column counts, total sum, and unique rows with any outlier.
+    """
+
+    column_outliers = {}
+    outlier_masks = []
+
+    for col in numeric_cols:
+        if col not in df.columns:
+            continue
+
+        series = pd.to_numeric(df[col], errors="coerce")
+        valid = series.dropna()
+
+        if len(valid) == 0:
+            column_outliers[col] = 0
+            outlier_masks.append(pd.Series(False, index=df.index))
+            continue
+
+        q1 = float(valid.quantile(0.25))
+        q3 = float(valid.quantile(0.75))
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+
+        mask = (series < lower) | (series > upper)
+        column_outliers[col] = int(mask.sum())
+        outlier_masks.append(mask.fillna(False))
+
+    if outlier_masks:
+        combined = np.column_stack([m.values for m in outlier_masks])
+        n_rows_with_outlier = int(combined.any(axis=1).sum())
+    else:
+        n_rows_with_outlier = 0
+
+    n_outliers = int(sum(column_outliers.values()))
+    max_outliers = max(column_outliers.values()) if column_outliers else 0
+
+    return {
+        "column_outliers": column_outliers,
+        "n_outliers": n_outliers,
+        "n_rows_with_outlier": n_rows_with_outlier,
+        "max_outliers": max_outliers,
+        "n_numeric_columns": len(column_outliers),
+    }
+
+
+def run_preprocessing():
+
+    df = load_data()
+
+    results = {}
+
+
+    # ========================================================
+    # 1. DATASET SHAPE
+    # ========================================================
+
+    results["n_rows"] = int(df.shape[0])
+    results["n_columns"] = int(df.shape[1])
+    results["n_numeric_features"] = N_NUMERIC_FEATURES
+    results["n_categorical_features"] = N_CATEGORICAL_FEATURES
+
+    results["all_columns"] = df.columns.tolist()
+
+
+    # ========================================================
+    # 2. NUMERICAL COLUMNS
+    # ========================================================
+
+    numeric_cols = [
+        c for c in NUM_COLS
+        if c in df.columns
+    ]
+
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
+
+    results["numeric_cols"] = numeric_cols
+
+
+    # ========================================================
+    # 3. CATEGORICAL COLUMNS
+    # ========================================================
+
+    categorical_cols = [
+        c for c in CATEGORICAL_COLS
+        if c in df.columns
+    ]
+
+    results["categorical_cols"] = categorical_cols
+
+
+    # ========================================================
+    # 4. IQR OUTLIER DETECTION & CLIPPING
+    # ========================================================
+
+    iqr_numeric_cols = [
+        c for c in IQR_NUMERIC_COLS
+        if c in df.columns
+    ]
+
+    iqr_results = _iqr_outlier_analysis(df, iqr_numeric_cols)
+
+    # Clip outliers on IQR_COL (studied_credits) for downstream preprocessing
+    if IQR_COL in df.columns:
+        series = pd.to_numeric(df[IQR_COL], errors="coerce").dropna()
+        q1 = float(series.quantile(0.25))
+        q3 = float(series.quantile(0.75))
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+
+        df["studied_credits_clipped"] = pd.to_numeric(
+            df[IQR_COL], errors="coerce"
+        ).clip(lower=lower, upper=upper)
+
+        iqr_results["clip_column"] = IQR_COL
+        iqr_results["clip_details"] = {
+            "column": IQR_COL,
+            "q1": round(q1, 4),
+            "q3": round(q3, 4),
+            "iqr": round(iqr, 4),
+            "lower_bound": round(lower, 4),
+            "upper_bound": round(upper, 4),
+            "n_outliers": iqr_results["column_outliers"].get(IQR_COL, 0),
+            "min_before": round(float(series.min()), 4),
+            "max_before": round(float(series.max()), 4),
+            "min_after": round(float(df["studied_credits_clipped"].min()), 4),
+            "max_after": round(float(df["studied_credits_clipped"].max()), 4),
+        }
+
+        df[IQR_COL] = df["studied_credits_clipped"]
+
+    results["iqr"] = iqr_results
+
+
+    # ========================================================
+    # 5. TRAIN TEST SPLIT
+    # ========================================================
+
+    train_df, test_df = train_test_split(
+        df,
+        test_size=0.30,
+        random_state=42
+    )
+
+    train_df = train_df.copy()
+    test_df = test_df.copy()
+
+
+    results["split"] = {
+
+        "total":
+            int(df.shape[0]),
+
+        "train_rows":
+            int(train_df.shape[0]),
+
+        "test_rows":
+            int(test_df.shape[0]),
+
+        "train_pct":
+            round(
+                len(train_df)
+                / len(df) * 100,
+                1
+            ),
+
+        "test_pct":
+            round(
+                len(test_df)
+                / len(df) * 100,
+                1
+            )
+    }
+
+
+    # ========================================================
+    # 6. ONE-HOT ENCODING
+    # ========================================================
+
+    if len(categorical_cols) > 0:
+
+        onehot_encoder = OneHotEncoder(
+            handle_unknown="ignore",
+            sparse_output=False
+        )
+
+        train_onehot = onehot_encoder.fit_transform(
+            train_df[categorical_cols].fillna("Missing")
+        )
+
+        test_onehot = onehot_encoder.transform(
+            test_df[categorical_cols].fillna("Missing")
+        )
+
+
+        onehot_feature_names = (
+            onehot_encoder
+            .get_feature_names_out(
+                categorical_cols
+            )
+        )
+
+
+        train_onehot_df = pd.DataFrame(
+            train_onehot,
+            columns=onehot_feature_names,
+            index=train_df.index
+        ).round(4)
+
+
+        test_onehot_df = pd.DataFrame(
+            test_onehot,
+            columns=onehot_feature_names,
+            index=test_df.index
+        ).round(4)
+
+
+        results["onehot"] = {
+
+            "columns":
+                list(onehot_feature_names),
+
+            "train_preview":
+                train_onehot_df
+                .head(5)
+                .to_dict(
+                    orient="records"
+                ),
+
+            "test_preview":
+                test_onehot_df
+                .head(5)
+                .to_dict(
+                    orient="records"
+                ),
+
+            "number_of_features":
+                len(onehot_feature_names)
+        }
+
+
+    # ========================================================
+    # 7. ORDINAL ENCODING
+    # ========================================================
+
+    if len(ORDINAL_COLS) > 0:
+
+        ordinal_cols = [
+            c for c in ORDINAL_COLS
+            if c in df.columns
+        ]
+
+        if len(ordinal_cols) > 0:
+
+            ordinal_encoder = OrdinalEncoder(
+                handle_unknown="use_encoded_value",
+                unknown_value=-1
+            )
+
+
+            train_ordinal = (
+                ordinal_encoder.fit_transform(
+                    train_df[
+                        ordinal_cols
+                    ].fillna("Missing")
+                )
+            )
+
+
+            test_ordinal = (
+                ordinal_encoder.transform(
+                    test_df[
+                        ordinal_cols
+                    ].fillna("Missing")
+                )
+            )
+
+
+            train_ordinal_df = pd.DataFrame(
+                train_ordinal,
+                columns=ordinal_cols,
+                index=train_df.index
+            ).round(4)
+
+
+            test_ordinal_df = pd.DataFrame(
+                test_ordinal,
+                columns=ordinal_cols,
+                index=test_df.index
+            ).round(4)
+
+
+            results["ordinal"] = {
+
+                "columns":
+                    ordinal_cols,
+
+                "train_preview":
+                    train_ordinal_df
+                    .head(5)
+                    .to_dict(
+                        orient="records"
+                    ),
+
+                "test_preview":
+                    test_ordinal_df
+                    .head(5)
+                    .to_dict(
+                        orient="records"
+                    )
+            }
+
+
+    # ========================================================
+    # 8. TARGET ENCODING
+    # ========================================================
+
+    TARGET_COLS = [
+        "final_result"
+    ]
+
+    result_map = {
+        "Withdrawn": 0,
+        "Fail": 1,
+        "Pass": 2,
+        "Distinction": 3
+    }
+
+    target_results = {}
+
+    for target in TARGET_COLS:
+
+        if target not in train_df.columns:
+            continue
+
+        target_results[target] = {}
+
+        # Convert target to numeric rating for target encoding
+        train_target = pd.to_numeric(
+            train_df[target].map(result_map),
+            errors="coerce"
+        )
+
+        global_mean = train_target.mean()
+
+        for col in categorical_cols:
+            target_map = (
+                train_df
+                .assign(_target=train_target)
+                .groupby(col)["_target"]
+                .mean()
+            )
+
+            train_encoded = (
+                train_df[col]
+                .map(target_map)
+                .fillna(global_mean)
+            )
+
+            test_encoded = (
+                test_df[col]
+                .map(target_map)
+                .fillna(global_mean)
+            )
+
+            train_target_df = pd.DataFrame({
+                col + "_target_" + target:
+                    train_encoded
+            })
+
+            test_target_df = pd.DataFrame({
+                col + "_target_" + target:
+                    test_encoded
+            })
+
+            target_results[target][col] = {
+
+                "mapping":
+                    target_map
+                    .round(4)
+                    .to_dict(),
+
+                "train_preview":
+                    train_target_df
+                    .head(5)
+                    .round(4)
+                    .to_dict(
+                        orient="records"
+                    ),
+
+                "test_preview":
+                    test_target_df
+                    .head(5)
+                    .round(4)
+                    .to_dict(
+                        orient="records"
+                    )
+            }
+
+    results["target_encoding"] = target_results
+
+
+    # ========================================================
+    # 9. EMBEDDING-BASED ENCODING
+    # ========================================================
+
+    embedding_results = {}
+
+    for col in categorical_cols:
+
+        categories = (
+            train_df[col]
+            .fillna("Missing")
+            .astype(str)
+            .unique()
+            .tolist()
+        )
+
+        category_to_id = {
+            category: index
+            for index, category
+            in enumerate(categories)
+        }
+
+        train_ids = (
+            train_df[col]
+            .fillna("Missing")
+            .astype(str)
+            .map(category_to_id)
+            .fillna(-1)
+            .astype(int)
+        )
+
+        test_ids = (
+            test_df[col]
+            .fillna("Missing")
+            .astype(str)
+            .map(category_to_id)
+            .fillna(-1)
+            .astype(int)
+        )
+
+        embedding_results[col] = {
+
+            "category_to_id":
+                category_to_id,
+
+            "embedding_input_dimension":
+                len(category_to_id),
+
+            "embedding_output_dimension":
+                3,
+
+            "train_preview":
+                pd.DataFrame(
+                    {
+                        col + "_embedding_id":
+                            train_ids
+                    }
+                )
+                .head(5)
+                .to_dict(
+                    orient="records"
+                ),
+
+            "test_preview":
+                pd.DataFrame(
+                    {
+                        col + "_embedding_id":
+                            test_ids
+                    }
+                )
+                .head(5)
+                .to_dict(
+                    orient="records"
+                )
+        }
+
+    results["embedding"] = embedding_results
+
+
+    # ========================================================
+    # 10. MIN-MAX SCALING
+    # ========================================================
+
+    minmax_scaler = MinMaxScaler()
+
+    # Impute numeric NaNs for scaling
+    train_num_clean = train_df[numeric_cols].copy()
+    test_num_clean = test_df[numeric_cols].copy()
+    for col in numeric_cols:
+        mean_val = train_num_clean[col].mean()
+        train_num_clean[col] = train_num_clean[col].fillna(mean_val)
+        test_num_clean[col] = test_num_clean[col].fillna(mean_val)
+
+    train_mm = minmax_scaler.fit_transform(train_num_clean)
+    test_mm = minmax_scaler.transform(test_num_clean)
+
+    train_mm_df = pd.DataFrame(
+        train_mm,
+        columns=numeric_cols
+    ).round(4)
+
+    test_mm_df = pd.DataFrame(
+        test_mm,
+        columns=numeric_cols
+    ).round(4)
+
+    results["minmax"] = {
+
+        "train_preview":
+            train_mm_df
+            .head(5)
+            .to_dict(
+                orient="records"
+            ),
+
+        "test_preview":
+            test_mm_df
+            .head(5)
+            .to_dict(
+                orient="records"
+            ),
+
+        "train_stats":
+            train_mm_df
+            .describe()
+            .round(4)
+            .to_dict(),
+
+        "test_stats":
+            test_mm_df
+            .describe()
+            .round(4)
+            .to_dict()
+    }
+
+
+    # ========================================================
+    # 11. STANDARD SCALING
+    # ========================================================
+
+    std_scaler = StandardScaler()
+
+    train_std = std_scaler.fit_transform(train_num_clean)
+    test_std = std_scaler.transform(test_num_clean)
+
+    train_std_df = pd.DataFrame(
+        train_std,
+        columns=numeric_cols
+    ).round(4)
+
+    test_std_df = pd.DataFrame(
+        test_std,
+        columns=numeric_cols
+    ).round(4)
+
+    results["standard"] = {
+
+        "train_preview":
+            train_std_df
+            .head(5)
+            .to_dict(
+                orient="records"
+            ),
+
+        "test_preview":
+            test_std_df
+            .head(5)
+            .to_dict(
+                orient="records"
+            ),
+
+        "train_stats":
+            train_std_df
+            .describe()
+            .round(4)
+            .to_dict(),
+
+        "test_stats":
+            test_std_df
+            .describe()
+            .round(4)
+            .to_dict()
+    }
+
+
+    # ========================================================
+    # 12. BEFORE SCALING
+    # ========================================================
+
+    results["before_scaling"] = (
+        train_df[
+            numeric_cols
+        ]
+        .head(5)
+        .round(4)
+        .replace({np.nan: None})
+        .to_dict(
+            orient="records"
+        )
+    )
+
+    # ========================================================
+    # 13. MISSING VALUES ANALYSIS
+    # ========================================================
+
+    results["missing_analysis"] = _missing_value_analysis(
+        load_data(),
+        numeric_cols
+    )
+
+    return results
 
 if __name__ == "__main__":
     res = run_preprocessing()
-    print("OULAD Preprocessing Pipeline Test:")
-    print("Shape:", res["n_rows"], "x", res["n_cols"])
-    print("Imputation Summary:", res["imputation_summary"])
-    print("Outlier Counts:", res["outlier_counts"])
-    print("Encoded Columns:", res["encoded_columns"])
+    print("Full OULAD Preprocessing Execution Test:")
+    print("Keys in results:", list(res.keys()))
+    print("Train rows:", res["split"]["train_rows"], "Test rows:", res["split"]["test_rows"])
+    print("OneHot Features:", res["onehot"]["number_of_features"])
+    print("Ordinal Columns:", res["ordinal"]["columns"])

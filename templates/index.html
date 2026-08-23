@@ -343,151 +343,137 @@
         {% if active == 'preprocessing' %}
         <!-- PREPROCESSING TAB -->
         <main id="preprocessing-tab" class="tab-content active">
-            <h2>3. Data Preprocessing & Feature Scaling</h2>
+            <h2>3. Project Data Preprocessing Pipeline (OULAD)</h2>
             <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Inspect outlier detection & IQR clipping, Min-Max feature scaling (0 to 1 range), and Standard feature scaling (&mu;=0, &sigma;=1).
+                Comprehensive machine learning data preprocessing featuring missing values analysis, IQR outlier clipping, 70/30 Train/Test split, One-Hot & Ordinal Encoding, Target & Embedding Encodings, and Min-Max / Standard Feature Scaling.
             </p>
 
             {% if preprocessing %}
-            <!-- Outlier Stats -->
+            <!-- Stat Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Dataset Shape</h3>
-                    <p>({{ preprocessing.n_rows }}, {{ preprocessing.n_cols }})</p>
+                    <p>({{ preprocessing.n_rows }}, {{ preprocessing.n_columns }})</p>
                     <span style="font-size: 0.85rem; color: #94a3b8;">Total Records & Features</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Outliers Fixed</h3>
-                    <p style="color: #facc15;">{{ preprocessing.total_outliers }}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Clipped using 1.5 &times; IQR bounds</span>
+                    <h3>Train / Test Split</h3>
+                    <p style="color: #60a5fa;">{{ preprocessing.split.train_rows }} / {{ preprocessing.split.test_rows }}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">70% Train ({{ preprocessing.split.train_pct }}%) | 30% Test ({{ preprocessing.split.test_pct }}%)</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Scaled Features</h3>
-                    <p style="color: #60a5fa;">{{ preprocessing.numeric_columns | length }}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Numeric columns processed</span>
+                    <h3>One-Hot Features Created</h3>
+                    <p style="color: #34d399;">{{ preprocessing.onehot.number_of_features }}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">From {{ preprocessing.categorical_cols | length }} Categorical Columns</span>
+                </div>
+                <div class="stat-card">
+                    <h3>IQR Outliers Fixed</h3>
+                    <p style="color: #facc15;">{{ preprocessing.iqr.n_outliers }}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Across {{ preprocessing.iqr.n_rows_with_outlier }} Unique Rows</span>
                 </div>
             </div>
 
-            <!-- Imputation & Outliers breakdown tables -->
-            <div class="chart-grid" style="margin-top: 25px;">
-                <div class="table-container">
-                    <h3>Missing Value Imputation Summary</h3>
-                    <table style="margin-top: 15px;">
-                        <thead>
-                            <tr>
-                                <th>Feature Name</th>
-                                <th>Missing Values Count</th>
-                                <th>Imputation Strategy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for col, count in preprocessing.imputation_summary.items() %}
-                                <tr>
-                                    <td><strong><code>{{ col }}</code></strong></td>
-                                    <td>
-                                        {% if count > 0 %}
-                                            <span style="color: #f87171; font-weight: bold;">{{ count }}</span>
-                                        {% else %}
-                                            <span style="color: #34d399;">0</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if col == 'avg_score' %}
-                                            <span style="color: #38bdf8; font-size: 0.85rem;">Median Score Imputation</span>
-                                        {% else %}
-                                            <span style="color: #a78bfa; font-size: 0.85rem;">Mode Category Imputation</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="table-container">
-                    <h3>Outlier Detection Breakdown (1.5 &times; IQR Clipping)</h3>
-                    <table style="margin-top: 15px;">
-                        <thead>
-                            <tr>
-                                <th>Numerical Feature</th>
-                                <th>Outliers Count</th>
-                                <th>Action Taken</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for col, count in preprocessing.outlier_counts.items() %}
-                                <tr>
-                                    <td><strong><code>{{ col }}</code></strong></td>
-                                    <td>
-                                        {% if count > 0 %}
-                                            <span style="color: #fb7185; font-weight: bold;">{{ count }}</span>
-                                        {% else %}
-                                            <span style="color: #34d399;">0</span>
-                                        {% endif %}
-                                    </td>
-                                    <td><span style="color: #38bdf8; font-size: 0.85rem;">Clipped to [Q1 - 1.5*IQR, Q3 + 1.5*IQR]</span></td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Sub-nav for Preprocessing views -->
+            <!-- Sub-nav for Preprocessing Pipeline Sections -->
             <div class="sub-nav" style="margin-top: 30px;">
-                <button class="sub-nav-btn active" onclick="switchPreprocView('orig')">📄 Original Numerical Values</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('minmax')">📐 Min-Max Scaled [0, 1]</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('standard')">📊 Standard Scaled (&mu;=0, &sigma;=1)</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('encoded')">🏷️ Encoded Categoricals (Ordinal & Binary)</button>
+                <button class="sub-nav-btn active" onclick="switchPreprocView('missing')">🧪 1. Missing Values Strategy</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('scaling')">📐 2. Min-Max & Standard Scaling</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('onehot')">⚡ 3. One-Hot & Ordinal Encodings</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('target_embed')">🎯 4. Target & Embedding Encodings</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('iqr')">✂️ 5. Outlier Detection & Clipping</button>
             </div>
 
-            <!-- Original Preview -->
-            <div id="preproc-orig-view" class="table-container">
+            <!-- SECTION 1: MISSING VALUES ANALYSIS -->
+            <div id="preproc-missing-view" class="table-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Original Numerical Features Preview (Top 10 Records)</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Unscaled Values</span>
+                    <h3>Missing Values Strategy Analysis</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Total Missing Cells: <strong style="color: #f87171;">{{ preprocessing.missing_analysis.total_missing_cells }}</strong></span>
                 </div>
+
+                <div class="chart-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card" style="text-align: left; padding: 20px;">
+                        <h4 style="color: #38bdf8; margin-top: 0;">Strategy 1: Row-Wise Deletion</h4>
+                        <p style="font-size: 1rem; color: var(--text-main); font-weight: normal; margin: 10px 0;">
+                            Rows dropped: <strong>{{ preprocessing.missing_analysis.rowdrop.rows_dropped }}</strong> ({{ preprocessing.missing_analysis.rowdrop.pct_dropped }}% loss)
+                        </p>
+                        <span style="font-size: 0.85rem; color: #94a3b8;">{{ preprocessing.missing_analysis.rowdrop.reason }}</span>
+                    </div>
+                    <div class="stat-card" style="text-align: left; padding: 20px;">
+                        <h4 style="color: #a78bfa; margin-top: 0;">Strategy 2: Column-Wise Deletion (>30% Threshold)</h4>
+                        <p style="font-size: 1rem; color: var(--text-main); font-weight: normal; margin: 10px 0;">
+                            Columns dropped: <strong>{{ preprocessing.missing_analysis.coldrop.cols_dropped | length }}</strong>
+                        </p>
+                        <span style="font-size: 0.85rem; color: #94a3b8;">{{ preprocessing.missing_analysis.coldrop.reason }}</span>
+                    </div>
+                </div>
+
+                <h3>Imputation Strategies (Mean vs Median)</h3>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
-                                {% for col in preprocessing.numeric_columns %}
-                                    <th>{{ col }}</th>
-                                {% endfor %}
+                                <th>Feature</th>
+                                <th>Missing Count</th>
+                                <th>Mean Imputation</th>
+                                <th>Median Imputation</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in preprocessing.original_preview %}
+                            {% for col, info in preprocessing.missing_analysis.col_info.items() %}
+                                {% if info.missing > 0 %}
                                 <tr>
-                                    {% for col in preprocessing.numeric_columns %}
-                                        <td>{{ row[col] if row[col] is not none else 'NaN' }}</td>
-                                    {% endfor %}
+                                    <td><strong><code>{{ col }}</code></strong></td>
+                                    <td><span style="color: #f87171; font-weight: bold;">{{ info.missing }}</span> ({{ info.pct }}%)</td>
+                                    <td>
+                                        {% for res in preprocessing.missing_analysis.mean_imputation.results %}
+                                            {% if res.column == col %}
+                                                {% if res.applicable %}
+                                                    <span style="color: #38bdf8;">Mean = {{ res.fill_value }}</span>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted);">N/A (Categorical)</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for res in preprocessing.missing_analysis.median_imputation.results %}
+                                            {% if res.column == col %}
+                                                {% if res.applicable %}
+                                                    <span style="color: #a78bfa;">Median = {{ res.fill_value }}</span>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted);">N/A (Categorical)</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
                                 </tr>
+                                {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Min-Max Scaled Preview -->
-            <div id="preproc-minmax-view" class="table-container" style="display: none;">
+            <!-- SECTION 2: SCALING PREVIEWS -->
+            <div id="preproc-scaling-view" class="table-container" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Min-Max Scaled Preview (Top 10 Records) <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">MinMaxScaler</span></h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Scaled between 0.0 and 1.0</span>
+                    <h3>Min-Max & Standard Scaled Features Preview (Train Set)</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Numerical Features: {{ preprocessing.numeric_cols | join(', ') }}</span>
                 </div>
+
+                <h4 style="color: #60a5fa; margin-top: 20px;">1. Min-Max Scaled Data Preview [0, 1]</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
-                                {% for col in preprocessing.numeric_columns %}
+                                {% for col in preprocessing.numeric_cols %}
                                     <th>{{ col }}</th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in preprocessing.minmax_preview %}
+                            {% for row in preprocessing.minmax.train_preview %}
                                 <tr>
-                                    {% for col in preprocessing.numeric_columns %}
+                                    {% for col in preprocessing.numeric_cols %}
                                         <td><strong style="color: #60a5fa;">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
@@ -495,27 +481,21 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            <!-- Standard Scaled Preview -->
-            <div id="preproc-standard-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Standard Scaled Preview (Top 10 Records) <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">StandardScaler</span></h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Standardized (Z-score: Mean=0, Std=1)</span>
-                </div>
+                <h4 style="color: #c084fc; margin-top: 25px;">2. Standard Scaled Data Preview (Z-score: Mean=0, Std=1)</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
-                                {% for col in preprocessing.numeric_columns %}
+                                {% for col in preprocessing.numeric_cols %}
                                     <th>{{ col }}</th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in preprocessing.standard_preview %}
+                            {% for row in preprocessing.standard.train_preview %}
                                 <tr>
-                                    {% for col in preprocessing.numeric_columns %}
+                                    {% for col in preprocessing.numeric_cols %}
                                         <td><strong style="color: #c084fc;">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
@@ -525,25 +505,27 @@
                 </div>
             </div>
 
-            <!-- Encoded Categorical Preview -->
-            <div id="preproc-encoded-view" class="table-container" style="display: none;">
+            <!-- SECTION 3: ONE-HOT & ORDINAL ENCODING -->
+            <div id="preproc-onehot-view" class="table-container" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Encoded Categorical & Ordinal Features Preview (Top 10 Records) <span style="background: rgba(52, 211, 153, 0.2); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">OULAD Category Mapping</span></h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Mapped to Numerical Integer Representations</span>
+                    <h3>One-Hot & Ordinal Encodings</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">One-Hot Features: {{ preprocessing.onehot.number_of_features }}</span>
                 </div>
+
+                <h4 style="color: #34d399;">1. One-Hot Encoded Features Preview (Top 5 Train Records)</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
-                                {% for col in preprocessing.encoded_columns %}
+                                {% for col in preprocessing.onehot.columns[:10] %}
                                     <th>{{ col }}</th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in preprocessing.encoded_preview %}
+                            {% for row in preprocessing.onehot.train_preview %}
                                 <tr>
-                                    {% for col in preprocessing.encoded_columns %}
+                                    {% for col in preprocessing.onehot.columns[:10] %}
                                         <td><strong style="color: #34d399;">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
@@ -551,7 +533,131 @@
                         </tbody>
                     </table>
                 </div>
+
+                <h4 style="color: #fb7185; margin-top: 25px;">2. Ordinal Encoded Features Preview (Top 5 Train Records)</h4>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.ordinal.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.ordinal.train_preview %}
+                                <tr>
+                                    {% for col in preprocessing.ordinal.columns %}
+                                        <td><strong style="color: #fb7185;">{{ row[col] }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- SECTION 4: TARGET & EMBEDDING ENCODINGS -->
+            <div id="preproc-target_embed-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Target & Embedding-Based Encodings</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Target Column: {{ preprocessing.all_columns[-1] }}</span>
+                </div>
+
+                <h4 style="color: #facc15;">1. Target Encoding (Category Mean Target Value)</h4>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category Column</th>
+                                <th>Category Mapping (Mean Target)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col, info in preprocessing.target_encoding.final_result.items() %}
+                                <tr>
+                                    <td><strong><code>{{ col }}</code></strong></td>
+                                    <td><code>{{ info.mapping }}</code></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 style="color: #38bdf8; margin-top: 25px;">2. Embedding-Based Integer ID Encodings (Deep Learning Input)</h4>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Categorical Feature</th>
+                                <th>Input Dimension (Unique Categories)</th>
+                                <th>Output Vector Dimension</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col, info in preprocessing.embedding.items() %}
+                                <tr>
+                                    <td><strong><code>{{ col }}</code></strong></td>
+                                    <td>{{ info.embedding_input_dimension }}</td>
+                                    <td><strong style="color: #38bdf8;">{{ info.embedding_output_dimension }}</strong></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION 5: OUTLIER DETECTION & CLIPPING -->
+            <div id="preproc-iqr-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>IQR Outlier Analysis & Clipping</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Primary Clipped Feature: <code>{{ preprocessing.iqr.clip_column }}</code></span>
+                </div>
+
+                {% if preprocessing.iqr.clip_details %}
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <h3>Lower Bound</h3>
+                        <p style="color: #34d399;">{{ preprocessing.iqr.clip_details.lower_bound }}</p>
+                        <span style="font-size: 0.85rem; color: #94a3b8;">Q1 - 1.5 * IQR</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Upper Bound</h3>
+                        <p style="color: #f87171;">{{ preprocessing.iqr.clip_details.upper_bound }}</p>
+                        <span style="font-size: 0.85rem; color: #94a3b8;">Q3 + 1.5 * IQR</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Max Value Before / After</h3>
+                        <p style="color: #facc15;">{{ preprocessing.iqr.clip_details.max_before }} &rarr; {{ preprocessing.iqr.clip_details.max_after }}</p>
+                        <span style="font-size: 0.85rem; color: #94a3b8;">Outlier clipping effect</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Numerical Column</th>
+                            <th>Detected IQR Outliers Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for col, count in preprocessing.iqr.column_outliers.items() %}
+                            <tr>
+                                <td><strong><code>{{ col }}</code></strong></td>
+                                <td>
+                                    {% if count > 0 %}
+                                        <span style="color: #fb7185; font-weight: bold;">{{ count }}</span>
+                                    {% else %}
+                                        <span style="color: #34d399;">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
             {% endif %}
         </main>
         {% endif %}
@@ -577,23 +683,24 @@
         }
 
         function switchPreprocView(viewType) {
-            const origView = document.getElementById('preproc-orig-view');
-            const minmaxView = document.getElementById('preproc-minmax-view');
-            const standardView = document.getElementById('preproc-standard-view');
-            const encodedView = document.getElementById('preproc-encoded-view');
+            const views = {
+                'missing': document.getElementById('preproc-missing-view'),
+                'scaling': document.getElementById('preproc-scaling-view'),
+                'onehot': document.getElementById('preproc-onehot-view'),
+                'target_embed': document.getElementById('preproc-target_embed-view'),
+                'iqr': document.getElementById('preproc-iqr-view')
+            };
             const btns = document.querySelectorAll('#preprocessing-tab .sub-nav-btn');
 
-            if (origView && minmaxView && standardView && encodedView && btns.length >= 4) {
-                origView.style.display = viewType === 'orig' ? 'block' : 'none';
-                minmaxView.style.display = viewType === 'minmax' ? 'block' : 'none';
-                standardView.style.display = viewType === 'standard' ? 'block' : 'none';
-                encodedView.style.display = viewType === 'encoded' ? 'block' : 'none';
-
-                btns[0].classList.toggle('active', viewType === 'orig');
-                btns[1].classList.toggle('active', viewType === 'minmax');
-                btns[2].classList.toggle('active', viewType === 'standard');
-                btns[3].classList.toggle('active', viewType === 'encoded');
-            }
+            const keys = Object.keys(views);
+            keys.forEach((key, index) => {
+                if (views[key]) {
+                    views[key].style.display = (key === viewType) ? 'block' : 'none';
+                }
+                if (btns[index]) {
+                    btns[index].classList.toggle('active', key === viewType);
+                }
+            });
         }
     </script>
 </body>
