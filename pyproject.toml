@@ -1,0 +1,15 @@
+[project]
+name = "ml-p-a"
+version = "0.1.0"
+description = "Machine Learning Project with React frontend and Flask backend"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "plotly>=5.14.0",
+    "seaborn>=0.13.0",
+    "matplotlib>=3.8.0",
+]

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Exploratory Data Analysis Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .tabs a.tab-btn {
+            display: inline-block;
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <header>
+            <h1>🎓 ML EDA Dashboard</h1>
+            <p>An interactive, high-performance web dashboard exploring the OULAD dataset.</p>
+        </header>
+
+        {% if error %}
+            <div style="background: rgba(255, 0, 0, 0.2); border: 1px solid red; padding: 10px; margin: 10px 0; border-radius: 8px;">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+
+        <div class="tabs">
+            <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">🗃️ Load Data</a>
+            <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">📊 Exploratory Data Analysis</a>
+        </div>
+
+        {% if active == 'data-loading' %}
+        <!-- LOAD DATA TAB -->
+        <main id="data-tab" class="tab-content active">
+            <h2>1. Dataset Overview</h2>
+            <div id="data-stats" class="stats-grid">
+                <div class="stat-card">
+                    <h3>Raw Data Shape</h3>
+                    <p id="raw-shape">{% if summary %}({{ summary.n_rows }}, {{ summary.n_cols }}){% else %}Loading...{% endif %}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Cleaned Data Shape</h3>
+                    <p id="clean-shape">{% if summary %}({{ summary.n_rows }}, {{ summary.n_cols }}){% else %}Loading...{% endif %}</p>
+                </div>
+            </div>
+            
+            {% if summary and summary.preview %}
+            <div class="table-container">
+                <h3>Data Preview (Top 10)</h3>
+                <div id="table-raw-wrapper" class="scrollable">
+                    <table id="table-raw">
+                        <thead>
+                            <tr>
+                                {% for col in summary.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in summary.preview %}
+                                <tr>
+                                    {% for col in summary.columns %}
+                                        <td>{{ row[col] if row[col] is not none else 'NaN' }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+        {% endif %}
+
+        {% if active == 'eda' %}
+        <!-- EDA TAB -->
+        <main id="eda-tab" class="tab-content active">
+            <h2>Exploratory Data Analysis</h2>
+            
+            <section class="eda-section">
+                <h3>2, 3, 4. Data Integrity (Missing & Duplicates)</h3>
+                <div class="stats-grid" id="integrity-stats">
+                    <div class="stat-card">
+                        <h3>Duplicates</h3>
+                        <p id="dup-count">{% if charts %}{{ charts.stats.duplicates }}{% else %}Loading...{% endif %}</p>
+                    </div>
+                </div>
+            </section>
+
+            {% if charts %}
+            <section class="eda-section">
+                <h3>5. Target Variable Distribution</h3>
+                <div id="chart_target_dist" class="plot-container">
+                    <img src="data:image/png;base64,{{ charts.chart_target_dist }}" alt="Target Distribution" style="max-width: 100%; height: auto; border-radius: 8px;">
+                </div>
+            </section>
+            
+            <section class="eda-section chart-grid">
+                <div>
+                    <h3>6. Numeric Feature Distributions</h3>
+                    <div id="chart_num_dist_1" class="plot-container">
+                        {% if charts.chart_num_dist_1 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_1 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                    <div id="chart_num_dist_2" class="plot-container mt">
+                        {% if charts.chart_num_dist_2 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_2 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3>7. Outlier Detection</h3>
+                    <div id="chart_boxplots" class="plot-container">
+                        {% if charts.chart_boxplots %}<img src="data:image/png;base64,{{ charts.chart_boxplots }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="eda-section chart-grid">
+                <div>
+                    <h3>8. Correlation Analysis</h3>
+                    <div id="chart_corr" class="plot-container">
+                        {% if charts.chart_corr %}<img src="data:image/png;base64,{{ charts.chart_corr }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3>9. Relationship Plots</h3>
+                    <div id="chart_scatter" class="plot-container">
+                        {% if charts.chart_scatter %}<img src="data:image/png;base64,{{ charts.chart_scatter }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="eda-section chart-grid">
+                <div>
+                    <h3>10. Categorical Feature Counts</h3>
+                    <div id="chart_cat_1" class="plot-container">
+                        {% if charts.chart_cat_1 %}<img src="data:image/png;base64,{{ charts.chart_cat_1 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                    <div id="chart_cat_2" class="plot-container mt">
+                        {% if charts.chart_cat_2 %}<img src="data:image/png;base64,{{ charts.chart_cat_2 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3>11 & 12. Demographics vs Target</h3>
+                    <div id="chart_gender_target" class="plot-container">
+                        {% if charts.chart_gender_target %}<img src="data:image/png;base64,{{ charts.chart_gender_target }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                    <div id="chart_edu_target" class="plot-container mt">
+                        {% if charts.chart_edu_target %}<img src="data:image/png;base64,{{ charts.chart_edu_target }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="eda-section chart-grid">
+                <div>
+                    <h3>13. Trend Analysis</h3>
+                    <div id="chart_trend" class="plot-container">
+                        {% if charts.chart_trend %}<img src="data:image/png;base64,{{ charts.chart_trend }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3>14. Average Score by Education</h3>
+                    <div id="chart_score_edu" class="plot-container">
+                        {% if charts.chart_score_edu %}<img src="data:image/png;base64,{{ charts.chart_score_edu }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="eda-section">
+                <h3>15. Pairplot / Scatter Matrix</h3>
+                <div id="chart_pairplot" class="plot-container large-plot">
+                    {% if charts.chart_pairplot %}<img src="data:image/png;base64,{{ charts.chart_pairplot }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+        </main>
+        {% endif %}
+        
+        {% if active == 'none' %}
+        <main class="tab-content active" style="text-align: center; padding: 4rem;">
+            <h2>Welcome to the EDA Dashboard!</h2>
+            <p style="margin-bottom: 2rem;">Please select a tab above to get started.</p>
+        </main>
+        {% endif %}
+    </div>
+</body>
+</html>
