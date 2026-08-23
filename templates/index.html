@@ -12,81 +12,242 @@
             text-decoration: none;
             color: inherit;
         }
+        .raw-badge {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.4);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .qmark-highlight {
+            background: rgba(234, 179, 8, 0.25);
+            color: #fef08a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .sub-nav {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .sub-nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .sub-nav-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #60a5fa;
+        }
     </style>
 </head>
 <body>
     <div class="glass-container">
         <header>
             <h1>🎓 ML EDA Dashboard</h1>
-            <p>An interactive, high-performance web dashboard exploring the OULAD dataset.</p>
+            <p>Interactive Data Analysis & Machine Learning Pipeline for OULAD Dataset</p>
         </header>
 
         {% if error %}
-            <div style="background: rgba(255, 0, 0, 0.2); border: 1px solid red; padding: 10px; margin: 10px 0; border-radius: 8px;">
-                <strong>Error:</strong> {{ error }}
+            <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; padding: 12px; margin: 15px 0; border-radius: 10px; color: #fca5a5;">
+                <strong>⚠️ Error:</strong> {{ error }}
             </div>
         {% endif %}
 
         <div class="tabs">
-            <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">🗃️ Load Data</a>
-            <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">📊 Exploratory Data Analysis</a>
+            <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">🗃️ 1. Main Page (Raw Dataset)</a>
+            <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">📊 2. Exploratory Data Analysis</a>
         </div>
 
         {% if active == 'data-loading' %}
-        <!-- LOAD DATA TAB -->
+        <!-- MAIN PAGE / LOAD DATA TAB -->
         <main id="data-tab" class="tab-content active">
-            <h2>1. Dataset Overview</h2>
+            <h2>1. Dataset Overview & Preview</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">
+                Inspect the original <strong>Raw Dataset</strong> values (uncleaned, direct from source CSV) and compare with transformed cleaned data.
+            </p>
+
             <div id="data-stats" class="stats-grid">
                 <div class="stat-card">
-                    <h3>Raw Data Shape</h3>
-                    <p id="raw-shape">{% if summary %}({{ summary.n_rows }}, {{ summary.n_cols }}){% else %}Loading...{% endif %}</p>
+                    <h3>Raw Dataset Shape</h3>
+                    <p id="raw-shape">{% if summary_raw %}({{ summary_raw.n_rows }}, {{ summary_raw.n_cols }}){% else %}Loading...{% endif %}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Original CSV Records</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Cleaned Data Shape</h3>
-                    <p id="clean-shape">{% if summary %}({{ summary.n_rows }}, {{ summary.n_cols }}){% else %}Loading...{% endif %}</p>
+                    <h3>Uncleaned Missing Indicators ('?')</h3>
+                    <p id="qmark-count" style="color: #facc15;">{% if summary_raw %}{{ summary_raw.q_mark_counts.get('imd_band', 0) }}{% else %}0{% endif %}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">In imd_band column</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Cleaned Dataset Shape</h3>
+                    <p id="clean-shape" style="color: #34d399;">{% if summary_clean %}({{ summary_clean.n_rows }}, {{ summary_clean.n_cols }}){% else %}Loading...{% endif %}</p>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">Merged Avg Score Feature</span>
                 </div>
             </div>
+
+            <!-- Sub-navigation for Raw vs Cleaned -->
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" onclick="switchDataView('raw')">📄 Raw Dataset Values (Uncleaned)</button>
+                <button class="sub-nav-btn" onclick="switchDataView('clean')">✨ Cleaned Dataset (Transformed)</button>
+            </div>
             
-            {% if summary and summary.preview %}
-            <div class="table-container">
-                <h3>Data Preview (Top 10)</h3>
+            <!-- RAW DATA TABLE & COLUMN METADATA -->
+            <div id="raw-view" class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Raw Dataset Metadata & Features <span class="raw-badge">Direct Source CSV (studentInfo.csv)</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Total Features: {{ summary_raw.n_cols if summary_raw else 0 }}</span>
+                </div>
+                {% if summary_raw and summary_raw.col_metadata %}
+                <div class="scrollable" style="max-height: 250px; margin-bottom: 25px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature Name</th>
+                                <th>Data Type</th>
+                                <th>Null Count (NaN)</th>
+                                <th>Uncleaned Indicator ('?') Count</th>
+                                <th>Total Missing</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in summary_raw.col_metadata %}
+                                <tr>
+                                    <td><strong><code>{{ col.name }}</code></strong></td>
+                                    <td><span style="color: #60a5fa; font-size: 0.85rem; font-family: monospace;">{{ col.dtype }}</span></td>
+                                    <td>{{ col.null_count }}</td>
+                                    <td>
+                                        {% if col.q_mark_count > 0 %}
+                                            <span class="qmark-highlight">{{ col.q_mark_count }}</span>
+                                        {% else %}
+                                            0
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if col.total_missing > 0 %}
+                                            <span style="color: #f87171; font-weight: bold;">{{ col.total_missing }}</span>
+                                        {% else %}
+                                            <span style="color: #34d399;">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Raw Dataset Values Preview (Top 10 Records) <span class="raw-badge">Uncleaned CSV Data</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Source: <code>studentInfo.csv</code></span>
+                </div>
+                {% if summary_raw and summary_raw.preview %}
                 <div id="table-raw-wrapper" class="scrollable">
                     <table id="table-raw">
                         <thead>
                             <tr>
-                                {% for col in summary.columns %}
+                                {% for col in summary_raw.columns %}
                                     <th>{{ col }}</th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in summary.preview %}
+                            {% for row in summary_raw.preview %}
                                 <tr>
-                                    {% for col in summary.columns %}
-                                        <td>{{ row[col] if row[col] is not none else 'NaN' }}</td>
+                                    {% for col in summary_raw.columns %}
+                                        <td>
+                                            {% if row[col] == '?' %}
+                                                <span class="qmark-highlight">?</span>
+                                            {% elif row[col] is not none %}
+                                                {{ row[col] }}
+                                            {% else %}
+                                                <em style="color: #64748b;">NaN</em>
+                                            {% endif %}
+                                        </td>
                                     {% endfor %}
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
+
+            <!-- CLEANED DATA TABLE -->
+            <div id="clean-view" class="table-container" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Cleaned & Merged Dataset Preview (Top 10 Records) <span style="background: rgba(52, 211, 153, 0.2); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Processed Data</span></h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Includes Aggregated Assessment Scores</span>
+                </div>
+                {% if summary_clean and summary_clean.preview %}
+                <div id="table-clean-wrapper" class="scrollable">
+                    <table id="table-clean">
+                        <thead>
+                            <tr>
+                                {% for col in summary_clean.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in summary_clean.preview %}
+                                <tr>
+                                    {% for col in summary_clean.columns %}
+                                        <td>
+                                            {% if row[col] is not none %}
+                                                {{ row[col] }}
+                                            {% else %}
+                                                <em style="color: #f43f5e;">NaN</em>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
         </main>
         {% endif %}
 
         {% if active == 'eda' %}
         <!-- EDA TAB -->
         <main id="eda-tab" class="tab-content active">
-            <h2>Exploratory Data Analysis</h2>
+            <h2>Exploratory Data Analysis (All Components)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px;">
+                Comprehensive exploratory data analysis covering missing value profiling, target distributions, numeric distributions, outlier detection, correlations, and demographic breakdowns.
+            </p>
             
             <section class="eda-section">
-                <h3>2, 3, 4. Data Integrity (Missing & Duplicates)</h3>
+                <h3>2, 3, 4. Data Integrity & Missing Profiling</h3>
                 <div class="stats-grid" id="integrity-stats">
                     <div class="stat-card">
-                        <h3>Duplicates</h3>
-                        <p id="dup-count">{% if charts %}{{ charts.stats.duplicates }}{% else %}Loading...{% endif %}</p>
+                        <h3>Total Rows</h3>
+                        <p>{% if charts %}{{ charts.stats.total_rows }}{% else %}32,593{% endif %}</p>
                     </div>
+                    <div class="stat-card">
+                        <h3>Total Features</h3>
+                        <p>{% if charts %}{{ charts.stats.total_cols }}{% else %}13{% endif %}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Duplicate Rows</h3>
+                        <p id="dup-count">{% if charts %}{{ charts.stats.duplicates }}{% else %}0{% endif %}</p>
+                    </div>
+                </div>
+
+                <div class="plot-container mt">
+                    {% if charts and charts.chart_missing %}
+                        <img src="data:image/png;base64,{{ charts.chart_missing }}" alt="Missing Values Analysis" style="max-width: 100%; height: auto; border-radius: 8px;">
+                    {% endif %}
                 </div>
             </section>
 
@@ -109,7 +270,7 @@
                     </div>
                 </div>
                 <div>
-                    <h3>7. Outlier Detection</h3>
+                    <h3>7. Outlier Detection (Separate Subplots)</h3>
                     <div id="chart_boxplots" class="plot-container">
                         {% if charts.chart_boxplots %}<img src="data:image/png;base64,{{ charts.chart_boxplots }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                     </div>
@@ -118,13 +279,13 @@
 
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>8. Correlation Analysis</h3>
+                    <h3>8. Correlation Analysis (Features Only)</h3>
                     <div id="chart_corr" class="plot-container">
                         {% if charts.chart_corr %}<img src="data:image/png;base64,{{ charts.chart_corr }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                     </div>
                 </div>
                 <div>
-                    <h3>9. Relationship Plots</h3>
+                    <h3>9. Relationship Plots (Credits vs Score)</h3>
                     <div id="chart_scatter" class="plot-container">
                         {% if charts.chart_scatter %}<img src="data:image/png;base64,{{ charts.chart_scatter }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                     </div>
@@ -133,7 +294,7 @@
 
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>10. Categorical Feature Counts</h3>
+                    <h3>10. Categorical Feature Breakdown</h3>
                     <div id="chart_cat_1" class="plot-container">
                         {% if charts.chart_cat_1 %}<img src="data:image/png;base64,{{ charts.chart_cat_1 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                     </div>
@@ -154,7 +315,7 @@
 
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>13. Trend Analysis</h3>
+                    <h3>13. Score Trend by Age Band</h3>
                     <div id="chart_trend" class="plot-container">
                         {% if charts.chart_trend %}<img src="data:image/png;base64,{{ charts.chart_trend }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                     </div>
@@ -168,8 +329,8 @@
             </section>
 
             <section class="eda-section">
-                <h3>15. Pairplot / Scatter Matrix</h3>
-                <div id="chart_pairplot" class="plot-container large-plot">
+                <h3>15. Feature Pairplot Matrix</h3>
+                <div id="chart_pairplot" class="plot-container">
                     {% if charts.chart_pairplot %}<img src="data:image/png;base64,{{ charts.chart_pairplot }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                 </div>
             </section>
@@ -177,13 +338,26 @@
 
         </main>
         {% endif %}
-        
-        {% if active == 'none' %}
-        <main class="tab-content active" style="text-align: center; padding: 4rem;">
-            <h2>Welcome to the EDA Dashboard!</h2>
-            <p style="margin-bottom: 2rem;">Please select a tab above to get started.</p>
-        </main>
-        {% endif %}
     </div>
+
+    <script>
+        function switchDataView(viewType) {
+            const rawView = document.getElementById('raw-view');
+            const cleanView = document.getElementById('clean-view');
+            const buttons = document.querySelectorAll('.sub-nav-btn');
+
+            if (viewType === 'raw') {
+                rawView.style.display = 'block';
+                cleanView.style.display = 'none';
+                buttons[0].classList.add('active');
+                buttons[1].classList.remove('active');
+            } else {
+                rawView.style.display = 'none';
+                cleanView.style.display = 'block';
+                buttons[0].classList.remove('active');
+                buttons[1].classList.add('active');
+            }
+        }
+    </script>
 </body>
 </html>

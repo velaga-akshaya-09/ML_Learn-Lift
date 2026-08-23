@@ -1,29 +1,36 @@
-from flask import Flask, render_template
-from load_data import load_data, get_data_summary
+from flask import Flask, render_template, redirect, url_for
+from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
 
 app = Flask(__name__)
 
 # Cache to prevent reloading data and re-generating charts on every request
 cache = {
+    "df_raw": None,
+    "summary_raw": None,
     "df_clean": None,
-    "summary": None,
+    "summary_clean": None,
     "charts": None
 }
 
 @app.route("/")
 def index():
-    return render_template("index.html", active="none")
+    return redirect(url_for("data_loading"))
 
 @app.route("/data-loading")
 def data_loading():
     error = None
 
     try:
+        if cache["df_raw"] is None:
+            cache["df_raw"] = load_raw_data()
+        if cache["summary_raw"] is None:
+            cache["summary_raw"] = get_data_summary(cache["df_raw"])
+
         if cache["df_clean"] is None:
             cache["df_clean"] = load_data()
-        if cache["summary"] is None:
-            cache["summary"] = get_data_summary(cache["df_clean"])
+        if cache["summary_clean"] is None:
+            cache["summary_clean"] = get_data_summary(cache["df_clean"])
     except FileNotFoundError as e:
         error = str(e)
     except Exception as e:
@@ -32,7 +39,8 @@ def data_loading():
     return render_template(
         "index.html",
         active="data-loading",
-        summary=cache["summary"],
+        summary_raw=cache["summary_raw"],
+        summary_clean=cache["summary_clean"],
         error=error
     )
 
@@ -65,3 +73,4 @@ def eda():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
