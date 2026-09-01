@@ -2,10 +2,23 @@ import os
 import pandas as pd
 import numpy as np
 
-# Adjusting paths to fit the OULAD dataset in your data folder
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-INFO_PATH = r"C:\Users\srila\OneDrive\Documents\ML sem 21\ML-P-A\data\studentInfo.csv"
-ASSESSMENT_PATH = r"C:\Users\srila\OneDrive\Documents\ML sem 21\ML-P-A\data\studentAssessment.csv"
+# Resolve the data directory dynamically relative to this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.environ.get("OULAD_DATA_DIR")
+
+if not DATA_DIR:
+    # Try 'Data' first, then 'data'
+    for folder in ["Data", "data"]:
+        candidate = os.path.join(BASE_DIR, folder)
+        if os.path.isdir(candidate):
+            DATA_DIR = candidate
+            break
+    # Fallback to default 'Data' directory if neither exists
+    if not DATA_DIR:
+        DATA_DIR = os.path.join(BASE_DIR, "Data")
+
+INFO_PATH = os.path.join(DATA_DIR, "studentInfo.csv")
+ASSESSMENT_PATH = os.path.join(DATA_DIR, "studentAssessment.csv")
 
 def load_raw_data(info_path: str = INFO_PATH, nrows: int = None) -> pd.DataFrame:
     """Loads the original raw studentInfo dataset without any transformations or cleaning."""

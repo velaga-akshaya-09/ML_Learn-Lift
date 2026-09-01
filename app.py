@@ -1,7 +1,8 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request, jsonify
 from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
 from preprocessing import run_preprocessing
+from ml_models import train_regression_model, train_regularized_model, train_decision_tree_model
 
 app = Flask(__name__)
 
@@ -91,6 +92,85 @@ def preprocessing():
         preprocessing=cache["preprocessing"],
         error=error
     )
+
+@app.route("/regression")
+def regression():
+    return render_template(
+        "index.html",
+        active="regression",
+        error=None
+    )
+
+@app.route("/regularization")
+def regularization():
+    return render_template(
+        "index.html",
+        active="regularization",
+        error=None
+    )
+
+@app.route("/decision-tree")
+def decision_tree():
+    return render_template(
+        "index.html",
+        active="decision-tree",
+        error=None
+    )
+
+@app.route("/api/train/regression", methods=["POST"])
+def api_train_regression():
+    try:
+        data = request.json or {}
+        model_type = data.get("model_type", "linear")
+        fit_intercept = data.get("fit_intercept", True)
+        c_val = float(data.get("c_val", 1.0))
+        solver = data.get("solver", "lbfgs")
+        
+        result = train_regression_model(
+            model_type=model_type,
+            fit_intercept=fit_intercept,
+            c_val=c_val,
+            solver=solver
+        )
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/train/regularization", methods=["POST"])
+def api_train_regularization():
+    try:
+        data = request.json or {}
+        task_type = data.get("task_type", "regression")
+        reg_type = data.get("reg_type", "lasso")
+        alpha = float(data.get("alpha", 1.0))
+        l1_ratio = float(data.get("l1_ratio", 0.5))
+        
+        result = train_regularized_model(
+            task_type=task_type,
+            reg_type=reg_type,
+            alpha=alpha,
+            l1_ratio=l1_ratio
+        )
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/train/decision-tree", methods=["POST"])
+def api_train_decision_tree():
+    try:
+        data = request.json or {}
+        criterion = data.get("criterion", "gini")
+        max_depth = int(data.get("max_depth", 4))
+        min_samples_split = int(data.get("min_samples_split", 2))
+        
+        result = train_decision_tree_model(
+            criterion=criterion,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split
+        )
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
