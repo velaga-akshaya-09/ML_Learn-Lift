@@ -3,115 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ML Exploratory Data Analysis Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>Student Learning Analytics & Machine Learning Pipeline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
-    <style>
-        .tabs a.tab-btn {
-            display: inline-block;
-            text-decoration: none;
-            color: inherit;
-        }
-        .raw-badge {
-            background: rgba(244, 63, 94, 0.2);
-            color: #fda4af;
-            border: 1px solid rgba(244, 63, 94, 0.4);
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .qmark-highlight {
-            background: rgba(234, 179, 8, 0.25);
-            color: #fef08a;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .sub-nav {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .sub-nav-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .sub-nav-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #60a5fa;
-        }
-    </style>
 </head>
 <body>
     <div class="glass-container">
+        <!-- Header / Navigation Bar -->
         <header>
-            <h1>🎓 ML EDA Dashboard</h1>
-            <p>Interactive Data Analysis & Machine Learning Pipeline for OULAD Dataset</p>
+            <div class="header-brand">
+                <h1>Student Learning Analytics <span class="logo-accent">& ML Pipeline</span></h1>
+                <p>Comprehensive Data Preprocessing, Exploratory Analysis & Predictive Machine Learning Architecture</p>
+            </div>
+            <div>
+                <span class="header-badge">Learning Analytics Platform</span>
+            </div>
         </header>
 
         {% if error %}
-            <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; padding: 12px; margin: 15px 0; border-radius: 10px; color: #fca5a5;">
-                <strong>⚠️ Error:</strong> {{ error }}
+            <div style="background-color: var(--status-danger-bg); border: 1px solid var(--status-danger-border); padding: 14px 18px; margin-bottom: 24px; border-radius: var(--radius-md); color: var(--status-danger-text); font-size: 0.95rem;">
+                <strong>⚠️ Application Notice:</strong> {{ error }}
             </div>
         {% endif %}
 
-        <div class="tabs">
-            <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">🗃️ 1. Main Page (Raw Dataset)</a>
-            <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">📊 2. Exploratory Data Analysis</a>
-            <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">⚙️ 3. Preprocessing</a>
-            <a href="/regression" class="tab-btn {% if active == 'regression' %}active{% endif %}">📈 4. Regression</a>
-            <a href="/regularization" class="tab-btn {% if active == 'regularization' %}active{% endif %}">🛡️ 5. Regularization</a>
-            <a href="/decision-tree" class="tab-btn {% if active == 'decision-tree' %}active{% endif %}">🌳 6. Decision Tree</a>
-        </div>
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <a href="/data-loading" class="tab-btn {% if active == 'data-loading' %}active{% endif %}">1. Basic Dataset</a>
+            <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">2. EDA (5 Tasks)</a>
+            <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">3. Preprocessing</a>
+            <a href="/regression" class="tab-btn {% if active == 'regression' %}active{% endif %}">4. Linear & Logistic</a>
+            <a href="/regularization" class="tab-btn {% if active == 'regularization' %}active{% endif %}">5. Regularization</a>
+            <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">6. Tree-Based Models (7 Algos)</a>
+        </nav>
 
         {% if active == 'data-loading' %}
-        <!-- MAIN PAGE / LOAD DATA TAB -->
+        <!-- 1. DATA LOADING TAB -->
         <main id="data-tab" class="tab-content active">
-            <h2>1. Dataset Overview & Preview</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">
-                Inspect the original <strong>Raw Dataset</strong> values (uncleaned, direct from source CSV) and compare with transformed cleaned data.
-            </p>
+            <div class="page-header">
+                <h2>1. Dataset Overview & Ingestion</h2>
+                <p>Inspect raw source data direct from CSV and compare against transformed cleaned records.</p>
+            </div>
 
+            <!-- KPI Cards -->
             <div id="data-stats" class="stats-grid">
                 <div class="stat-card">
                     <h3>Raw Dataset Shape</h3>
-                    <p id="raw-shape">{% if summary_raw %}({{ summary_raw.n_rows }}, {{ summary_raw.n_cols }}){% else %}Loading...{% endif %}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Original CSV Records</span>
+                    <p>{% if summary_raw %}({{ summary_raw.n_rows }}, {{ summary_raw.n_cols }}){% else %}—{% endif %}</p>
+                    <span class="stat-desc">Original CSV Records</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Uncleaned Missing Indicators ('?')</h3>
-                    <p id="qmark-count" style="color: #facc15;">{% if summary_raw %}{{ summary_raw.q_mark_counts.get('imd_band', 0) }}{% else %}0{% endif %}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">In imd_band column</span>
+                    <h3>Uncleaned Indicators ('?')</h3>
+                    <p style="color: var(--status-warning-text);">{% if summary_raw %}{{ summary_raw.q_mark_counts.get('imd_band', 0) }}{% else %}0{% endif %}</p>
+                    <span class="stat-desc">In <code>imd_band</code> feature</span>
                 </div>
                 <div class="stat-card">
                     <h3>Cleaned Dataset Shape</h3>
-                    <p id="clean-shape" style="color: #34d399;">{% if summary_clean %}({{ summary_clean.n_rows }}, {{ summary_clean.n_cols }}){% else %}Loading...{% endif %}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Merged Avg Score Feature</span>
+                    <p style="color: var(--status-success-text);">{% if summary_clean %}({{ summary_clean.n_rows }}, {{ summary_clean.n_cols }}){% else %}—{% endif %}</p>
+                    <span class="stat-desc">Merged Assessment Scores</span>
                 </div>
             </div>
 
-            <!-- Sub-navigation for Raw vs Cleaned -->
+            <!-- Sub-Navigation Pills -->
             <div class="sub-nav">
                 <button class="sub-nav-btn active" onclick="switchDataView('raw')">📄 Raw Dataset Values (Uncleaned)</button>
                 <button class="sub-nav-btn" onclick="switchDataView('clean')">✨ Cleaned Dataset (Transformed)</button>
             </div>
             
-            <!-- RAW DATA TABLE & COLUMN METADATA -->
+            <!-- RAW DATA VIEW -->
             <div id="raw-view" class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Raw Dataset Metadata & Features <span class="raw-badge">Direct Source CSV (studentInfo.csv)</span></h3>
+                <div class="table-header-title">
+                    <h3>Raw Dataset Feature Metadata <span class="badge badge-warning" style="margin-left: 8px;">Direct Source CSV</span></h3>
                     <span style="color: var(--text-muted); font-size: 0.85rem;">Total Features: {{ summary_raw.n_cols if summary_raw else 0 }}</span>
                 </div>
                 {% if summary_raw and summary_raw.col_metadata %}
-                <div class="scrollable" style="max-height: 250px; margin-bottom: 25px;">
+                <div class="scrollable" style="max-height: 240px; margin-bottom: 24px;">
                     <table>
                         <thead>
                             <tr>
@@ -126,20 +91,20 @@
                             {% for col in summary_raw.col_metadata %}
                                 <tr>
                                     <td><strong><code>{{ col.name }}</code></strong></td>
-                                    <td><span style="color: #60a5fa; font-size: 0.85rem; font-family: monospace;">{{ col.dtype }}</span></td>
+                                    <td><span style="color: var(--primary); font-size: 0.85rem; font-family: monospace;">{{ col.dtype }}</span></td>
                                     <td>{{ col.null_count }}</td>
                                     <td>
                                         {% if col.q_mark_count > 0 %}
-                                            <span class="qmark-highlight">{{ col.q_mark_count }}</span>
+                                            <span class="badge badge-warning">{{ col.q_mark_count }}</span>
                                         {% else %}
                                             0
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if col.total_missing > 0 %}
-                                            <span style="color: #f87171; font-weight: bold;">{{ col.total_missing }}</span>
+                                            <span class="badge badge-danger">{{ col.total_missing }}</span>
                                         {% else %}
-                                            <span style="color: #34d399;">0</span>
+                                            <span class="badge badge-success">0</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -149,9 +114,9 @@
                 </div>
                 {% endif %}
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Raw Dataset Values Preview (Top 10 Records) <span class="raw-badge">Uncleaned CSV Data</span></h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Source: <code>studentInfo.csv</code></span>
+                <div class="table-header-title">
+                    <h3>Raw Dataset Values Preview (Top 10 Records)</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Source File: <code>studentInfo.csv</code></span>
                 </div>
                 {% if summary_raw and summary_raw.preview %}
                 <div id="table-raw-wrapper" class="scrollable">
@@ -169,11 +134,11 @@
                                     {% for col in summary_raw.columns %}
                                         <td>
                                             {% if row[col] == '?' %}
-                                                <span class="qmark-highlight">?</span>
+                                                <span class="badge badge-warning">?</span>
                                             {% elif row[col] is not none %}
                                                 {{ row[col] }}
                                             {% else %}
-                                                <em style="color: #64748b;">NaN</em>
+                                                <em style="color: var(--text-light);">NaN</em>
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -185,10 +150,10 @@
                 {% endif %}
             </div>
 
-            <!-- CLEANED DATA TABLE -->
+            <!-- CLEANED DATA VIEW -->
             <div id="clean-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Cleaned & Merged Dataset Preview (Top 10 Records) <span style="background: rgba(52, 211, 153, 0.2); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Processed Data</span></h3>
+                <div class="table-header-title">
+                    <h3>Cleaned & Merged Dataset Preview (Top 10 Records) <span class="badge badge-success" style="margin-left: 8px;">Processed Data</span></h3>
                     <span style="color: var(--text-muted); font-size: 0.85rem;">Includes Aggregated Assessment Scores</span>
                 </div>
                 {% if summary_clean and summary_clean.preview %}
@@ -209,7 +174,7 @@
                                             {% if row[col] is not none %}
                                                 {{ row[col] }}
                                             {% else %}
-                                                <em style="color: #f43f5e;">NaN</em>
+                                                <em style="color: var(--status-danger-text);">NaN</em>
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -224,18 +189,19 @@
         {% endif %}
 
         {% if active == 'eda' %}
-        <!-- EDA TAB -->
+        <!-- 2. EDA TAB -->
         <main id="eda-tab" class="tab-content active">
-            <h2>Exploratory Data Analysis (All Components)</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Comprehensive exploratory data analysis covering missing value profiling, target distributions, numeric distributions, outlier detection, correlations, and demographic breakdowns.
-            </p>
+            <div class="page-header">
+                <h2>2. Exploratory Data Analysis (EDA - 5 Tasks)</h2>
+                <p>Structured exploratory visual analysis covering data integrity, target distribution, feature distributions, correlations, and demographics.</p>
+            </div>
             
+            <!-- TASK 1 -->
             <section class="eda-section">
-                <h3>2, 3, 4. Data Integrity & Missing Profiling</h3>
-                <div class="stats-grid" id="integrity-stats">
+                <h3>Task 1: Data Integrity & Missing Values Profiling</h3>
+                <div class="stats-grid">
                     <div class="stat-card">
-                        <h3>Total Rows</h3>
+                        <h3>Total Dataset Rows</h3>
                         <p>{% if charts %}{{ charts.stats.total_rows }}{% else %}32,593{% endif %}</p>
                     </div>
                     <div class="stat-card">
@@ -243,99 +209,75 @@
                         <p>{% if charts %}{{ charts.stats.total_cols }}{% else %}13{% endif %}</p>
                     </div>
                     <div class="stat-card">
-                        <h3>Duplicate Rows</h3>
-                        <p id="dup-count">{% if charts %}{{ charts.stats.duplicates }}{% else %}0{% endif %}</p>
+                        <h3>Duplicate Records</h3>
+                        <p style="color: var(--status-success-text);">{% if charts %}{{ charts.stats.duplicates }}{% else %}0{% endif %}</p>
                     </div>
                 </div>
 
                 <div class="plot-container mt">
                     {% if charts and charts.chart_missing %}
-                        <img src="data:image/png;base64,{{ charts.chart_missing }}" alt="Missing Values Analysis" style="max-width: 100%; height: auto; border-radius: 8px;">
+                        <img src="data:image/png;base64,{{ charts.chart_missing }}" alt="Task 1: Missing Values Chart">
                     {% endif %}
                 </div>
             </section>
 
             {% if charts %}
+            <!-- TASK 2 -->
             <section class="eda-section">
-                <h3>5. Target Variable Distribution</h3>
+                <h3>Task 2: Target Variable Distribution (Final Result)</h3>
                 <div id="chart_target_dist" class="plot-container">
-                    <img src="data:image/png;base64,{{ charts.chart_target_dist }}" alt="Target Distribution" style="max-width: 100%; height: auto; border-radius: 8px;">
+                    <img src="data:image/png;base64,{{ charts.chart_target_dist }}" alt="Task 2: Target Distribution">
                 </div>
             </section>
             
+            <!-- TASK 3 -->
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>6. Numeric Feature Distributions</h3>
+                    <h3>Task 3a: Numeric Feature Distributions</h3>
                     <div id="chart_num_dist_1" class="plot-container">
-                        {% if charts.chart_num_dist_1 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_1 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_num_dist_1 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_1 }}">{% endif %}
                     </div>
                     <div id="chart_num_dist_2" class="plot-container mt">
-                        {% if charts.chart_num_dist_2 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_2 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_num_dist_2 %}<img src="data:image/png;base64,{{ charts.chart_num_dist_2 }}">{% endif %}
                     </div>
                 </div>
                 <div>
-                    <h3>7. Outlier Detection (Separate Subplots)</h3>
+                    <h3>Task 3b: Outlier Boxplots (IQR Analysis)</h3>
                     <div id="chart_boxplots" class="plot-container">
-                        {% if charts.chart_boxplots %}<img src="data:image/png;base64,{{ charts.chart_boxplots }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_boxplots %}<img src="data:image/png;base64,{{ charts.chart_boxplots }}">{% endif %}
                     </div>
                 </div>
             </section>
 
+            <!-- TASK 4 -->
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>8. Correlation Analysis (Features Only)</h3>
+                    <h3>Task 4a: Feature Correlation Heatmap</h3>
                     <div id="chart_corr" class="plot-container">
-                        {% if charts.chart_corr %}<img src="data:image/png;base64,{{ charts.chart_corr }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_corr %}<img src="data:image/png;base64,{{ charts.chart_corr }}">{% endif %}
                     </div>
                 </div>
                 <div>
-                    <h3>9. Relationship Plots (Credits vs Score)</h3>
+                    <h3>Task 4b: Feature Relationships</h3>
                     <div id="chart_scatter" class="plot-container">
-                        {% if charts.chart_scatter %}<img src="data:image/png;base64,{{ charts.chart_scatter }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_scatter %}<img src="data:image/png;base64,{{ charts.chart_scatter }}">{% endif %}
                     </div>
                 </div>
             </section>
 
+            <!-- TASK 5 -->
             <section class="eda-section chart-grid">
                 <div>
-                    <h3>10. Categorical Feature Breakdown</h3>
+                    <h3>Task 5a: Categorical Demographics</h3>
                     <div id="chart_cat_1" class="plot-container">
-                        {% if charts.chart_cat_1 %}<img src="data:image/png;base64,{{ charts.chart_cat_1 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
-                    </div>
-                    <div id="chart_cat_2" class="plot-container mt">
-                        {% if charts.chart_cat_2 %}<img src="data:image/png;base64,{{ charts.chart_cat_2 }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_cat_1 %}<img src="data:image/png;base64,{{ charts.chart_cat_1 }}">{% endif %}
                     </div>
                 </div>
                 <div>
-                    <h3>11 & 12. Demographics vs Target</h3>
+                    <h3>Task 5b: Gender vs Target Outcome</h3>
                     <div id="chart_gender_target" class="plot-container">
-                        {% if charts.chart_gender_target %}<img src="data:image/png;base64,{{ charts.chart_gender_target }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
+                        {% if charts.chart_gender_target %}<img src="data:image/png;base64,{{ charts.chart_gender_target }}">{% endif %}
                     </div>
-                    <div id="chart_edu_target" class="plot-container mt">
-                        {% if charts.chart_edu_target %}<img src="data:image/png;base64,{{ charts.chart_edu_target }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
-                    </div>
-                </div>
-            </section>
-
-            <section class="eda-section chart-grid">
-                <div>
-                    <h3>13. Score Trend by Age Band</h3>
-                    <div id="chart_trend" class="plot-container">
-                        {% if charts.chart_trend %}<img src="data:image/png;base64,{{ charts.chart_trend }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
-                    </div>
-                </div>
-                <div>
-                    <h3>14. Average Score by Education</h3>
-                    <div id="chart_score_edu" class="plot-container">
-                        {% if charts.chart_score_edu %}<img src="data:image/png;base64,{{ charts.chart_score_edu }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
-                    </div>
-                </div>
-            </section>
-
-            <section class="eda-section">
-                <h3>15. Feature Pairplot Matrix</h3>
-                <div id="chart_pairplot" class="plot-container">
-                    {% if charts.chart_pairplot %}<img src="data:image/png;base64,{{ charts.chart_pairplot }}" style="max-width: 100%; height: auto; border-radius: 8px;">{% endif %}
                 </div>
             </section>
             {% endif %}
@@ -344,72 +286,72 @@
         {% endif %}
 
         {% if active == 'preprocessing' %}
-        <!-- PREPROCESSING TAB -->
+        <!-- 3. PREPROCESSING TAB -->
         <main id="preprocessing-tab" class="tab-content active">
-            <h2>3. Project Data Preprocessing Pipeline (OULAD)</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Comprehensive machine learning data preprocessing featuring missing values analysis, IQR outlier clipping, 70/30 Train/Test split, One-Hot & Ordinal Encoding, Target & Embedding Encodings, and Min-Max / Standard Feature Scaling.
-            </p>
+            <div class="page-header">
+                <h2>3. Project Data Preprocessing Pipeline</h2>
+                <p>Data cleaning and transformation steps featuring outlier clipping, standardisation, imputation, and feature encodings.</p>
+            </div>
 
             {% if preprocessing %}
-            <!-- Stat Cards -->
+            <!-- Summary Stats -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Dataset Shape</h3>
+                    <h3>Dataset Dimension</h3>
                     <p>({{ preprocessing.n_rows }}, {{ preprocessing.n_columns }})</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Total Records & Features</span>
+                    <span class="stat-desc">Total Records & Columns</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Train / Test Split</h3>
-                    <p style="color: #60a5fa;">{{ preprocessing.split.train_rows }} / {{ preprocessing.split.test_rows }}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">70% Train ({{ preprocessing.split.train_pct }}%) | 30% Test ({{ preprocessing.split.test_pct }}%)</span>
+                    <h3>Train / Test Partition</h3>
+                    <p>{{ preprocessing.split.train_rows }} / {{ preprocessing.split.test_rows }}</p>
+                    <span class="stat-desc">70% Train | 30% Test Split</span>
                 </div>
                 <div class="stat-card">
-                    <h3>One-Hot Features Created</h3>
-                    <p style="color: #34d399;">{{ preprocessing.onehot.number_of_features }}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">From {{ preprocessing.categorical_cols | length }} Categorical Columns</span>
+                    <h3>One-Hot Features</h3>
+                    <p style="color: var(--primary);">{{ preprocessing.onehot.number_of_features }}</p>
+                    <span class="stat-desc">Derived Categorical Features</span>
                 </div>
                 <div class="stat-card">
-                    <h3>IQR Outliers Fixed</h3>
-                    <p style="color: #facc15;">{{ preprocessing.iqr.n_outliers }}</p>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">Across {{ preprocessing.iqr.n_rows_with_outlier }} Unique Rows</span>
+                    <h3>Outliers Clipped</h3>
+                    <p style="color: var(--status-warning-text);">{{ preprocessing.iqr.n_outliers }}</p>
+                    <span class="stat-desc">Across {{ preprocessing.iqr.n_rows_with_outlier }} Unique Rows</span>
                 </div>
             </div>
 
-            <!-- Sub-nav for Preprocessing Pipeline Sections -->
-            <div class="sub-nav" style="margin-top: 30px;">
-                <button class="sub-nav-btn active" onclick="switchPreprocView('missing')">🧪 1. Missing Values Strategy</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('scaling')">📐 2. Min-Max & Standard Scaling</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('onehot')">⚡ 3. One-Hot & Ordinal Encodings</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('target_embed')">🎯 4. Target & Embedding Encodings</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('iqr')">✂️ 5. Outlier Detection & Clipping</button>
+            <!-- Sub-Navigation Pills -->
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" onclick="switchPreprocView('missing')">🧪 Missing Values & Imputation</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('scaling')">📐 Scaling & Standardisation</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('onehot')">⚡ One-Hot & Ordinal Encodings</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('target_embed')">🎯 Target & Embedding Encodings</button>
+                <button class="sub-nav-btn" onclick="switchPreprocView('iqr')">✂️ Outlier Detection & Clipping</button>
             </div>
 
-            <!-- SECTION 1: MISSING VALUES ANALYSIS -->
+            <!-- SECTION 1: MISSING VALUES -->
             <div id="preproc-missing-view" class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Missing Values Strategy Analysis</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Total Missing Cells: <strong style="color: #f87171;">{{ preprocessing.missing_analysis.total_missing_cells }}</strong></span>
+                <div class="table-header-title">
+                    <h3>Missing Values & Imputation Analysis</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Total Missing Cells: <strong style="color: var(--status-danger-text);">{{ preprocessing.missing_analysis.total_missing_cells }}</strong></span>
                 </div>
 
-                <div class="chart-grid" style="margin-bottom: 25px;">
-                    <div class="stat-card" style="text-align: left; padding: 20px;">
-                        <h4 style="color: #38bdf8; margin-top: 0;">Strategy 1: Row-Wise Deletion</h4>
-                        <p style="font-size: 1rem; color: var(--text-main); font-weight: normal; margin: 10px 0;">
-                            Rows dropped: <strong>{{ preprocessing.missing_analysis.rowdrop.rows_dropped }}</strong> ({{ preprocessing.missing_analysis.rowdrop.pct_dropped }}% loss)
+                <div class="chart-grid" style="margin-bottom: 24px;">
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px;">
+                        <h4 style="color: var(--primary-dark); margin: 0 0 8px 0; font-size: 0.95rem;">Strategy 1: Row-Wise Deletion</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 0.9rem; color: var(--text-heading);">
+                            Rows dropped: <strong>{{ preprocessing.missing_analysis.rowdrop.rows_dropped }}</strong> ({{ preprocessing.missing_analysis.rowdrop.pct_dropped }}% data loss)
                         </p>
-                        <span style="font-size: 0.85rem; color: #94a3b8;">{{ preprocessing.missing_analysis.rowdrop.reason }}</span>
+                        <span style="font-size: 0.825rem; color: var(--text-muted);">{{ preprocessing.missing_analysis.rowdrop.reason }}</span>
                     </div>
-                    <div class="stat-card" style="text-align: left; padding: 20px;">
-                        <h4 style="color: #a78bfa; margin-top: 0;">Strategy 2: Column-Wise Deletion (>30% Threshold)</h4>
-                        <p style="font-size: 1rem; color: var(--text-main); font-weight: normal; margin: 10px 0;">
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px;">
+                        <h4 style="color: var(--primary-dark); margin: 0 0 8px 0; font-size: 0.95rem;">Strategy 2: Column-Wise Deletion (>30% Threshold)</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 0.9rem; color: var(--text-heading);">
                             Columns dropped: <strong>{{ preprocessing.missing_analysis.coldrop.cols_dropped | length }}</strong>
                         </p>
-                        <span style="font-size: 0.85rem; color: #94a3b8;">{{ preprocessing.missing_analysis.coldrop.reason }}</span>
+                        <span style="font-size: 0.825rem; color: var(--text-muted);">{{ preprocessing.missing_analysis.coldrop.reason }}</span>
                     </div>
                 </div>
 
-                <h3>Imputation Strategies (Mean vs Median)</h3>
+                <h3>Numeric Imputation Comparison (Mean vs Median)</h3>
                 <div class="scrollable">
                     <table>
                         <thead>
@@ -425,12 +367,12 @@
                                 {% if info.missing > 0 %}
                                 <tr>
                                     <td><strong><code>{{ col }}</code></strong></td>
-                                    <td><span style="color: #f87171; font-weight: bold;">{{ info.missing }}</span> ({{ info.pct }}%)</td>
+                                    <td><span class="badge badge-danger">{{ info.missing }}</span> ({{ info.pct }}%)</td>
                                     <td>
                                         {% for res in preprocessing.missing_analysis.mean_imputation.results %}
                                             {% if res.column == col %}
                                                 {% if res.applicable %}
-                                                    <span style="color: #38bdf8;">Mean = {{ res.fill_value }}</span>
+                                                    <span style="color: var(--primary); font-weight: 600;">Mean = {{ res.fill_value }}</span>
                                                 {% else %}
                                                     <span style="color: var(--text-muted);">N/A (Categorical)</span>
                                                 {% endif %}
@@ -441,7 +383,7 @@
                                         {% for res in preprocessing.missing_analysis.median_imputation.results %}
                                             {% if res.column == col %}
                                                 {% if res.applicable %}
-                                                    <span style="color: #a78bfa;">Median = {{ res.fill_value }}</span>
+                                                    <span style="color: var(--primary-dark); font-weight: 600;">Median = {{ res.fill_value }}</span>
                                                 {% else %}
                                                     <span style="color: var(--text-muted);">N/A (Categorical)</span>
                                                 {% endif %}
@@ -456,36 +398,14 @@
                 </div>
             </div>
 
-            <!-- SECTION 2: SCALING PREVIEWS -->
+            <!-- SECTION 2: SCALING & STANDARDISATION -->
             <div id="preproc-scaling-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Min-Max & Standard Scaled Features Preview (Train Set)</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Numerical Features: {{ preprocessing.numeric_cols | join(', ') }}</span>
+                <div class="table-header-title">
+                    <h3>Feature Scaling Previews (Train Set)</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Features: {{ preprocessing.numeric_cols | join(', ') }}</span>
                 </div>
 
-                <h4 style="color: #60a5fa; margin-top: 20px;">1. Min-Max Scaled Data Preview [0, 1]</h4>
-                <div class="scrollable">
-                    <table>
-                        <thead>
-                            <tr>
-                                {% for col in preprocessing.numeric_cols %}
-                                    <th>{{ col }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in preprocessing.minmax.train_preview %}
-                                <tr>
-                                    {% for col in preprocessing.numeric_cols %}
-                                        <td><strong style="color: #60a5fa;">{{ row[col] }}</strong></td>
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h4 style="color: #c084fc; margin-top: 25px;">2. Standard Scaled Data Preview (Z-score: Mean=0, Std=1)</h4>
+                <h4 style="color: var(--primary-dark); margin-top: 16px;">1. Standardisation (StandardScaler Z-Score: Mean=0, Std=1)</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
@@ -499,7 +419,29 @@
                             {% for row in preprocessing.standard.train_preview %}
                                 <tr>
                                     {% for col in preprocessing.numeric_cols %}
-                                        <td><strong style="color: #c084fc;">{{ row[col] }}</strong></td>
+                                        <td><strong style="color: var(--primary);">{{ row[col] }}</strong></td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 style="color: var(--primary-dark); margin-top: 24px;">2. Min-Max Scaling [0, 1]</h4>
+                <div class="scrollable">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preprocessing.numeric_cols %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preprocessing.minmax.train_preview %}
+                                <tr>
+                                    {% for col in preprocessing.numeric_cols %}
+                                        <td><strong style="color: var(--primary);">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
                             {% endfor %}
@@ -508,14 +450,14 @@
                 </div>
             </div>
 
-            <!-- SECTION 3: ONE-HOT & ORDINAL ENCODING -->
+            <!-- SECTION 3: ENCODINGS -->
             <div id="preproc-onehot-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>One-Hot & Ordinal Encodings</h3>
+                <div class="table-header-title">
+                    <h3>One-Hot & Ordinal Categorical Encodings</h3>
                     <span style="color: var(--text-muted); font-size: 0.85rem;">One-Hot Features: {{ preprocessing.onehot.number_of_features }}</span>
                 </div>
 
-                <h4 style="color: #34d399;">1. One-Hot Encoded Features Preview (Top 5 Train Records)</h4>
+                <h4 style="color: var(--primary-dark);">1. One-Hot Encoded Columns Preview</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
@@ -529,7 +471,7 @@
                             {% for row in preprocessing.onehot.train_preview %}
                                 <tr>
                                     {% for col in preprocessing.onehot.columns[:10] %}
-                                        <td><strong style="color: #34d399;">{{ row[col] }}</strong></td>
+                                        <td><strong style="color: var(--primary-dark);">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
                             {% endfor %}
@@ -537,7 +479,7 @@
                     </table>
                 </div>
 
-                <h4 style="color: #fb7185; margin-top: 25px;">2. Ordinal Encoded Features Preview (Top 5 Train Records)</h4>
+                <h4 style="color: var(--primary-dark); margin-top: 24px;">2. Ordinal Encoded Features Preview</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
@@ -551,7 +493,7 @@
                             {% for row in preprocessing.ordinal.train_preview %}
                                 <tr>
                                     {% for col in preprocessing.ordinal.columns %}
-                                        <td><strong style="color: #fb7185;">{{ row[col] }}</strong></td>
+                                        <td><strong style="color: var(--primary-dark);">{{ row[col] }}</strong></td>
                                     {% endfor %}
                                 </tr>
                             {% endfor %}
@@ -562,18 +504,18 @@
 
             <!-- SECTION 4: TARGET & EMBEDDING ENCODINGS -->
             <div id="preproc-target_embed-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>Target & Embedding-Based Encodings</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Target Column: {{ preprocessing.all_columns[-1] }}</span>
+                <div class="table-header-title">
+                    <h3>Target & Embedding Encodings</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Target: <code>final_result</code></span>
                 </div>
 
-                <h4 style="color: #facc15;">1. Target Encoding (Category Mean Target Value)</h4>
+                <h4 style="color: var(--primary-dark);">1. Target Encoding (Category Target Mean Mapping)</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
-                                <th>Category Column</th>
-                                <th>Category Mapping (Mean Target)</th>
+                                <th>Category Feature</th>
+                                <th>Category Mapping (Mean Target Value)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -587,14 +529,14 @@
                     </table>
                 </div>
 
-                <h4 style="color: #38bdf8; margin-top: 25px;">2. Embedding-Based Integer ID Encodings (Deep Learning Input)</h4>
+                <h4 style="color: var(--primary-dark); margin-top: 24px;">2. Embedding-Based Integer ID Encodings</h4>
                 <div class="scrollable">
                     <table>
                         <thead>
                             <tr>
                                 <th>Categorical Feature</th>
                                 <th>Input Dimension (Unique Categories)</th>
-                                <th>Output Vector Dimension</th>
+                                <th>Embedding Dimension</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -602,7 +544,7 @@
                                 <tr>
                                     <td><strong><code>{{ col }}</code></strong></td>
                                     <td>{{ info.embedding_input_dimension }}</td>
-                                    <td><strong style="color: #38bdf8;">{{ info.embedding_output_dimension }}</strong></td>
+                                    <td><strong style="color: var(--primary);">{{ info.embedding_output_dimension }}</strong></td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -610,29 +552,29 @@
                 </div>
             </div>
 
-            <!-- SECTION 5: OUTLIER DETECTION & CLIPPING -->
+            <!-- SECTION 5: OUTLIERS -->
             <div id="preproc-iqr-view" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>IQR Outlier Analysis & Clipping</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Primary Clipped Feature: <code>{{ preprocessing.iqr.clip_column }}</code></span>
+                <div class="table-header-title">
+                    <h3>Outlier Detection & IQR Clipping</h3>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Clipped Feature: <code>{{ preprocessing.iqr.clip_column }}</code></span>
                 </div>
 
                 {% if preprocessing.iqr.clip_details %}
                 <div class="stats-grid" style="margin-bottom: 20px;">
                     <div class="stat-card">
                         <h3>Lower Bound</h3>
-                        <p style="color: #34d399;">{{ preprocessing.iqr.clip_details.lower_bound }}</p>
-                        <span style="font-size: 0.85rem; color: #94a3b8;">Q1 - 1.5 * IQR</span>
+                        <p style="color: var(--status-success-text);">{{ preprocessing.iqr.clip_details.lower_bound }}</p>
+                        <span class="stat-desc">Q1 - 1.5 * IQR</span>
                     </div>
                     <div class="stat-card">
                         <h3>Upper Bound</h3>
-                        <p style="color: #f87171;">{{ preprocessing.iqr.clip_details.upper_bound }}</p>
-                        <span style="font-size: 0.85rem; color: #94a3b8;">Q3 + 1.5 * IQR</span>
+                        <p style="color: var(--status-danger-text);">{{ preprocessing.iqr.clip_details.upper_bound }}</p>
+                        <span class="stat-desc">Q3 + 1.5 * IQR</span>
                     </div>
                     <div class="stat-card">
                         <h3>Max Value Before / After</h3>
-                        <p style="color: #facc15;">{{ preprocessing.iqr.clip_details.max_before }} &rarr; {{ preprocessing.iqr.clip_details.max_after }}</p>
-                        <span style="font-size: 0.85rem; color: #94a3b8;">Outlier clipping effect</span>
+                        <p style="color: var(--primary);">{{ preprocessing.iqr.clip_details.max_before }} &rarr; {{ preprocessing.iqr.clip_details.max_after }}</p>
+                        <span class="stat-desc">Clipping effect</span>
                     </div>
                 </div>
                 {% endif %}
@@ -640,7 +582,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Numerical Column</th>
+                            <th>Numerical Feature</th>
                             <th>Detected IQR Outliers Count</th>
                         </tr>
                     </thead>
@@ -650,9 +592,9 @@
                                 <td><strong><code>{{ col }}</code></strong></td>
                                 <td>
                                     {% if count > 0 %}
-                                        <span style="color: #fb7185; font-weight: bold;">{{ count }}</span>
+                                        <span class="badge badge-warning">{{ count }}</span>
                                     {% else %}
-                                        <span style="color: #34d399;">0</span>
+                                        <span class="badge badge-success">0</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -666,90 +608,84 @@
         {% endif %}
 
         {% if active == 'regression' %}
-        <!-- REGRESSION PAGE -->
+        <!-- 4. LINEAR & LOGISTIC REGRESSION -->
         <main id="regression-tab" class="tab-content active">
-            <h2>4. Regression Models Analysis</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Select between Linear Regression (continuous assessment score prediction) and Logistic Regression (binary student success prediction). Tune hyperparameters and train models dynamically.
-            </p>
+            <div class="page-header">
+                <h2>4. Linear & Logistic Regression</h2>
+                <p>Train regression models for continuous score estimation or binary success classification with optional regularization penalties.</p>
+            </div>
 
             <div class="ml-layout">
-                <!-- Sidebar Controls -->
                 <aside class="controls-sidebar">
                     <h3>Model Parameters</h3>
                     
                     <div class="form-group">
-                        <label for="reg-model-type">Algorithm Type</label>
-                        <select id="reg-model-type" class="form-control" onchange="toggleRegressionParams()">
+                        <label for="reg-model-type">1. Select Algorithm</label>
+                        <select id="reg-model-type" class="form-control">
                             <option value="linear">Linear Regression (Continuous Target)</option>
                             <option value="logistic">Logistic Regression (Binary Target)</option>
                         </select>
                     </div>
 
-                    <!-- Linear Regression Specific Parameters -->
-                    <div id="linear-params">
-                        <div class="form-group form-check">
-                            <input type="checkbox" id="linear-fit-intercept" checked>
-                            <label for="linear-fit-intercept" style="margin-bottom: 0;">Fit Intercept</label>
-                        </div>
+                    <!-- REGULARIZATION DROPDOWN BOX -->
+                    <div class="form-group">
+                        <label for="reg-mode-dropdown" style="color: var(--primary-dark); font-weight: 700;">2. Regularization Mode Dropdown</label>
+                        <select id="reg-mode-dropdown" class="form-control" onchange="toggleRegModeParams()">
+                            <option value="without">Without Regularization (Standard OLS / Unpenalized)</option>
+                            <option value="with">With Regularization (Lasso, Ridge, ElasticNet)</option>
+                        </select>
                     </div>
 
-                    <!-- Logistic Regression Specific Parameters -->
-                    <div id="logistic-params" style="display: none;">
+                    <!-- Parameters for WITH Regularization -->
+                    <div id="with-reg-params" style="display: none; background: var(--primary-light); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--primary-border); margin-bottom: 20px;">
                         <div class="form-group">
-                            <label for="logistic-c">Regularization Strength (C)</label>
-                            <div class="range-slider-container">
-                                <input type="range" id="logistic-c" min="0.05" max="10.0" step="0.05" value="1.0" oninput="updateSliderValue('logistic-c-val', this.value)">
-                                <span id="logistic-c-val" class="range-slider-value">1.0</span>
-                            </div>
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">Smaller values specify stronger regularization.</span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="logistic-solver">Optimization Solver</label>
-                            <select id="logistic-solver" class="form-control">
-                                <option value="lbfgs">lbfgs (default)</option>
-                                <option value="liblinear">liblinear</option>
-                                <option value="saga">saga</option>
+                            <label for="reg-penalty-type">Penalty Style</label>
+                            <select id="reg-penalty-type" class="form-control">
+                                <option value="lasso">Lasso (L1 Penalty)</option>
+                                <option value="ridge">Ridge (L2 Penalty)</option>
+                                <option value="elasticnet">Elastic Net (L1 + L2 Penalty)</option>
                             </select>
                         </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="reg-alpha">Penalty Strength (&alpha; / C)</label>
+                            <div class="range-slider-container">
+                                <input type="range" id="reg-alpha" min="0.01" max="2.0" step="0.05" value="0.1" oninput="updateSliderValue('reg-alpha-val', this.value)">
+                                <span id="reg-alpha-val" class="range-slider-value">0.1</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <button class="btn-primary" onclick="trainRegression()">
+                    <button class="btn-primary" onclick="trainRegressionUnified()">
                         <span>🚀 Train Model</span>
                     </button>
                 </aside>
 
                 <!-- Results Output Grid -->
                 <section class="results-panel relative-container">
-                    <!-- Loading overlay -->
                     <div id="regression-loading" class="loading-overlay">
                         <div class="spinner"></div>
                     </div>
 
-                    <div id="regression-welcome" class="table-container" style="text-align: center; padding: 40px;">
-                        <p style="font-size: 1.2rem; color: var(--text-muted); margin: 0;">Select parameters and click "Train Model" to display results.</p>
+                    <div id="regression-welcome" class="table-container" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Configure parameters and click "Train Model" to generate metrics and diagnostic plots.</p>
                     </div>
 
                     <div id="regression-results" style="display: none;">
-                        <!-- KPI Metric Cards -->
-                        <div id="regression-metrics" class="stats-grid-4">
-                            <!-- Dynamically loaded -->
-                        </div>
+                        <div id="regression-metrics" class="stats-grid-4"></div>
 
-                        <!-- Graphical Visualizations -->
-                        <div class="table-container" style="margin-top: 25px;">
+                        <div class="table-container" style="margin-top: 24px;">
                             <div class="chart-tabs">
                                 <button id="reg-tab-1" class="chart-tab-btn active" onclick="switchRegressionChart(1)">📊 Performance Visualization</button>
                                 <button id="reg-tab-2" class="chart-tab-btn" onclick="switchRegressionChart(2)">📈 Diagnostic Plots</button>
-                                <button id="reg-tab-3" class="chart-tab-btn" onclick="switchRegressionChart(3)">📋 Top Model Coefficients</button>
+                                <button id="reg-tab-3" class="chart-tab-btn" onclick="switchRegressionChart(3)">📋 Model Coefficients</button>
                             </div>
 
-                            <div id="reg-chart-container-1" class="plot-container" style="text-align: center;">
-                                <img id="reg-chart-img-1" src="" style="max-width: 100%; height: auto; border-radius: 8px;">
+                            <div id="reg-chart-container-1" class="plot-container">
+                                <img id="reg-chart-img-1" src="">
                             </div>
-                            <div id="reg-chart-container-2" class="plot-container" style="display: none; text-align: center;">
-                                <img id="reg-chart-img-2" src="" style="max-width: 100%; height: auto; border-radius: 8px;">
+                            <div id="reg-chart-container-2" class="plot-container" style="display: none;">
+                                <img id="reg-chart-img-2" src="">
                             </div>
                             <div id="reg-chart-container-3" class="scrollable" style="display: none; margin-top: 10px;">
                                 <table>
@@ -759,12 +695,10 @@
                                             <th>Weight / Coefficient</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="reg-coef-table-body">
-                                        <!-- Dynamically loaded -->
-                                    </tbody>
+                                    <tbody id="reg-coef-table-body"></tbody>
                                 </table>
-                                <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted);">
-                                    Model Intercept: <strong id="reg-intercept-val" style="color: var(--accent-hover);">0.0000</strong>
+                                <div style="margin-top: 14px; font-size: 0.875rem; color: var(--text-muted);">
+                                    Model Intercept: <strong id="reg-intercept-val" style="color: var(--primary-dark);">0.0000</strong>
                                 </div>
                             </div>
                         </div>
@@ -775,17 +709,16 @@
         {% endif %}
 
         {% if active == 'regularization' %}
-        <!-- REGULARIZATION PAGE -->
+        <!-- 5. REGULARIZATION -->
         <main id="regularization-tab" class="tab-content active">
-            <h2>5. Regularized Linear & Logistic Regression</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Train regularized machine learning models using Lasso ($L_1$), Ridge ($L_2$), and Elastic Net ($L_1 + L_2$) penalties to observe coefficient shrinkage and performance tradeoffs.
-            </p>
+            <div class="page-header">
+                <h2>5. Regularized Regression Analysis</h2>
+                <p>Analyze coefficient shrinkage and feature elimination effects under Lasso ($L_1$), Ridge ($L_2$), and Elastic Net ($L_1 + L_2$) penalties.</p>
+            </div>
 
             <div class="ml-layout">
-                <!-- Sidebar Controls -->
                 <aside class="controls-sidebar">
-                    <h3>Regularization Options</h3>
+                    <h3>Regularization Settings</h3>
 
                     <div class="form-group">
                         <label for="regul-task-type">Task Target</label>
@@ -805,12 +738,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="regul-alpha">Regularization Strength (Alpha)</label>
+                        <label for="regul-alpha">Penalty Strength (&alpha;)</label>
                         <div class="range-slider-container">
                             <input type="range" id="regul-alpha" min="0.01" max="2.0" step="0.05" value="0.1" oninput="updateSliderValue('regul-alpha-val', this.value)">
                             <span id="regul-alpha-val" class="range-slider-value">0.1</span>
                         </div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">Larger values apply heavier shrinkage penalty.</span>
                     </div>
 
                     <div id="elasticnet-params" style="display: none;">
@@ -820,7 +752,6 @@
                                 <input type="range" id="regul-l1-ratio" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateSliderValue('regul-l1-val', this.value)">
                                 <span id="regul-l1-val" class="range-slider-value">0.5</span>
                             </div>
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">1.0 = Pure Lasso, 0.0 = Pure Ridge.</span>
                         </div>
                     </div>
 
@@ -829,45 +760,37 @@
                     </button>
                 </aside>
 
-                <!-- Results Output Grid -->
                 <section class="results-panel relative-container">
-                    <!-- Loading overlay -->
                     <div id="regularization-loading" class="loading-overlay">
                         <div class="spinner"></div>
                     </div>
 
-                    <div id="regularization-welcome" class="table-container" style="text-align: center; padding: 40px;">
-                        <p style="font-size: 1.2rem; color: var(--text-muted); margin: 0;">Select penalty type and click "Train Regularized Model" to display results.</p>
+                    <div id="regularization-welcome" class="table-container" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Select penalty options and click "Train Regularized Model".</p>
                     </div>
 
                     <div id="regularization-results" style="display: none;">
-                        <!-- KPI Metric Cards -->
-                        <div id="regularization-metrics" class="stats-grid-4">
-                            <!-- Dynamically loaded -->
-                        </div>
+                        <div id="regularization-metrics" class="stats-grid-4"></div>
 
-                        <!-- Grid representing plots -->
-                        <div class="chart-grid" style="margin-top: 25px;">
+                        <div class="chart-grid" style="margin-top: 24px;">
                             <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Coefficient Shrinkage Plot</h3>
-                                <div id="regul-chart-container-coef" class="plot-container" style="text-align: center;">
-                                    <img id="regul-chart-img-coef" src="" style="max-width: 100%; height: auto; border-radius: 8px;">
+                                <h3 style="margin-top: 0; font-size: 1rem;">Coefficient Shrinkage Plot</h3>
+                                <div id="regul-chart-container-coef" class="plot-container">
+                                    <img id="regul-chart-img-coef" src="">
                                 </div>
-                                <div id="regul-shrunk-stats" style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
-                                    <!-- Loaded dynamically -->
-                                </div>
+                                <div id="regul-shrunk-stats" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;"></div>
                             </div>
                             
                             <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Performance Evaluation Plot</h3>
-                                <div id="regul-chart-container-main" class="plot-container" style="text-align: center;">
-                                    <img id="regul-chart-img-main" src="" style="max-width: 100%; height: auto; border-radius: 8px;">
+                                <h3 style="margin-top: 0; font-size: 1rem;">Performance Evaluation Plot</h3>
+                                <div id="regul-chart-container-main" class="plot-container">
+                                    <img id="regul-chart-img-main" src="">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="table-container">
-                            <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Top Model Coefficients Table</h3>
+                        <div class="table-container" style="margin-top: 24px;">
+                            <h3 style="margin-top: 0; font-size: 1rem;">Model Coefficients Table</h3>
                             <div class="scrollable">
                                 <table>
                                     <thead>
@@ -876,12 +799,10 @@
                                             <th>Weight / Coefficient</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="regul-coef-table-body">
-                                        <!-- Dynamically loaded -->
-                                    </tbody>
+                                    <tbody id="regul-coef-table-body"></tbody>
                                 </table>
-                                <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted);">
-                                    Model Intercept: <strong id="regul-intercept-val" style="color: var(--accent-hover);">0.0000</strong>
+                                <div style="margin-top: 14px; font-size: 0.875rem; color: var(--text-muted);">
+                                    Model Intercept: <strong id="regul-intercept-val" style="color: var(--primary-dark);">0.0000</strong>
                                 </div>
                             </div>
                         </div>
@@ -891,25 +812,46 @@
         </main>
         {% endif %}
 
-        {% if active == 'decision-tree' %}
-        <!-- DECISION TREE PAGE -->
-        <main id="decision-tree-tab" class="tab-content active">
-            <h2>6. Decision Tree Classification & Splits</h2>
-            <p style="color: var(--text-muted); margin-bottom: 25px;">
-                Train a Decision Tree Classifier to segment students and predict final exam success. Explore the mathematical split structure, rules logic, and feature importances.
-            </p>
+        {% if active == 'tree-based' or active == 'decision-tree' %}
+        <!-- 6. TREE BASED ALGORITHMS -->
+        <main id="tree-based-tab" class="tab-content active">
+            <div class="page-header">
+                <h2>6. Tree-Based Algorithms Suite (7 Algorithms)</h2>
+                <p>Train and compare decision trees and ensemble classifiers to predict student outcome probabilities.</p>
+            </div>
 
             <div class="ml-layout">
-                <!-- Sidebar Controls -->
                 <aside class="controls-sidebar">
-                    <h3>Decision Tree Settings</h3>
+                    <h3>Tree Model Selector</h3>
 
                     <div class="form-group">
-                        <label for="tree-criterion">Split Criterion</label>
-                        <select id="tree-criterion" class="form-control">
-                            <option value="gini">Gini Impurity (default)</option>
-                            <option value="entropy">Entropy (Information Gain)</option>
+                        <label for="tree-algorithm-select" style="color: var(--primary-dark); font-weight: 700;">Select Algorithm (1 of 7)</label>
+                        <select id="tree-algorithm-select" class="form-control" onchange="toggleTreeAlgoParams()">
+                            <option value="decision_tree">1) Decision Tree</option>
+                            <option value="random_forest">2) Random Forest</option>
+                            <option value="adaboost">3) AdaBoost</option>
+                            <option value="gradient_boosting">4) Gradient Boosting</option>
+                            <option value="xgboost">5) XGBoost</option>
+                            <option value="lightboost">6) LightBoost (LightGBM)</option>
+                            <option value="catboost">7) CatBoost</option>
                         </select>
+                    </div>
+
+                    <!-- Dynamic Controls -->
+                    <div id="param-group-n-estimators" class="form-group" style="display: none;">
+                        <label for="tree-n-estimators">Number of Estimators / Trees</label>
+                        <div class="range-slider-container">
+                            <input type="range" id="tree-n-estimators" min="10" max="300" step="10" value="100" oninput="updateSliderValue('tree-nest-val', this.value)">
+                            <span id="tree-nest-val" class="range-slider-value">100</span>
+                        </div>
+                    </div>
+
+                    <div id="param-group-learning-rate" class="form-group" style="display: none;">
+                        <label for="tree-learning-rate">Learning Rate (&eta;)</label>
+                        <div class="range-slider-container">
+                            <input type="range" id="tree-learning-rate" min="0.01" max="0.5" step="0.01" value="0.1" oninput="updateSliderValue('tree-lr-val', this.value)">
+                            <span id="tree-lr-val" class="range-slider-value">0.1</span>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -918,63 +860,57 @@
                             <input type="range" id="tree-depth" min="2" max="10" step="1" value="4" oninput="updateSliderValue('tree-depth-val', this.value)">
                             <span id="tree-depth-val" class="range-slider-value">4</span>
                         </div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">Restricting depth prevents model overfitting.</span>
                     </div>
 
                     <div class="form-group">
-                        <label for="tree-min-split">Min Samples to Split Node</label>
+                        <label for="tree-min-split">Min Samples to Split</label>
                         <select id="tree-min-split" class="form-control">
-                            <option value="2">2 samples (default)</option>
+                            <option value="2">2 samples</option>
                             <option value="5">5 samples</option>
                             <option value="10">10 samples</option>
                             <option value="20">20 samples</option>
-                            <option value="50">50 samples</option>
                         </select>
                     </div>
 
-                    <button class="btn-primary" onclick="trainDecisionTree()">
-                        <span>🌳 Train Decision Tree</span>
+                    <button class="btn-primary" onclick="trainTreeBasedModel()">
+                        <span>🌳 Train Tree Algorithm</span>
                     </button>
                 </aside>
 
-                <!-- Results Output Grid -->
                 <section class="results-panel relative-container">
-                    <!-- Loading overlay -->
                     <div id="tree-loading" class="loading-overlay">
                         <div class="spinner"></div>
                     </div>
 
-                    <div id="tree-welcome" class="table-container" style="text-align: center; padding: 40px;">
-                        <p style="font-size: 1.2rem; color: var(--text-muted); margin: 0;">Configure splitting constraints and click "Train Decision Tree" to display splits.</p>
+                    <div id="tree-welcome" class="table-container" style="text-align: center; padding: 48px;">
+                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Select algorithm from the 7 options and click "Train Tree Algorithm".</p>
                     </div>
 
                     <div id="tree-results" style="display: none;">
-                        <!-- KPI Metric Cards -->
-                        <div id="tree-metrics" class="stats-grid-4">
-                            <!-- Dynamically loaded -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 id="selected-algo-title" style="margin: 0; color: var(--primary-dark); font-size: 1.2rem;">Algorithm Results</h3>
                         </div>
 
-                        <!-- Graphical splits and importance -->
-                        <div class="chart-grid" style="margin-top: 25px;">
+                        <div id="tree-metrics" class="stats-grid-4"></div>
+
+                        <div class="chart-grid" style="margin-top: 24px;">
                             <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Feature Importances</h3>
-                                <div id="tree-chart-container-importance" class="plot-container" style="text-align: center;">
-                                    <img id="tree-chart-img-importance" src="" style="max-width: 100%; height: auto; border-radius: 8px;">
+                                <h3 style="margin-top: 0; font-size: 1rem;">Feature Importances</h3>
+                                <div id="tree-chart-container-importance" class="plot-container">
+                                    <img id="tree-chart-img-importance" src="">
                                 </div>
                             </div>
                             
                             <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Tree Walkthrough Split Rules</h3>
-                                <div id="tree-walkthrough-log" class="tree-walkthrough">
-                                    <!-- Loaded dynamically -->
-                                </div>
+                                <h3 style="margin-top: 0; font-size: 1rem;">Model Rule Walkthrough</h3>
+                                <div id="tree-walkthrough-log" class="tree-walkthrough"></div>
                             </div>
                         </div>
 
-                        <div class="table-container">
-                            <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Decision Tree Splits Visualizer (Depth &le; 3)</h3>
-                            <div id="tree-chart-container-tree" class="plot-container" style="text-align: center; margin-top: 15px;">
-                                <img id="tree-chart-img-tree" src="" style="max-width: 100%; height: auto; border-radius: 8px; background: white; padding: 10px;">
+                        <div class="table-container" style="margin-top: 24px;">
+                            <h3 id="tree-chart-heading" style="margin-top: 0; font-size: 1rem;">Model Diagnostics Visualizer</h3>
+                            <div id="tree-chart-container-tree" class="plot-container" style="margin-top: 14px;">
+                                <img id="tree-chart-img-tree" src="">
                             </div>
                         </div>
                     </div>
@@ -1012,31 +948,22 @@
                 'iqr': document.getElementById('preproc-iqr-view')
             };
             const btns = document.querySelectorAll('#preprocessing-tab .sub-nav-btn');
-
             const keys = Object.keys(views);
             keys.forEach((key, index) => {
-                if (views[key]) {
-                    views[key].style.display = (key === viewType) ? 'block' : 'none';
-                }
-                if (btns[index]) {
-                    btns[index].classList.toggle('active', key === viewType);
-                }
+                if (views[key]) views[key].style.display = (key === viewType) ? 'block' : 'none';
+                if (btns[index]) btns[index].classList.toggle('active', key === viewType);
             });
         }
 
-        // Hyperparameter utilities and dynamic requests for ML pages
         function updateSliderValue(spanId, val) {
             document.getElementById(spanId).innerText = val;
         }
 
-        function toggleRegressionParams() {
-            const modelType = document.getElementById('reg-model-type').value;
-            if (modelType === 'linear') {
-                document.getElementById('linear-params').style.display = 'block';
-                document.getElementById('logistic-params').style.display = 'none';
-            } else {
-                document.getElementById('linear-params').style.display = 'none';
-                document.getElementById('logistic-params').style.display = 'block';
+        function toggleRegModeParams() {
+            const regMode = document.getElementById('reg-mode-dropdown').value;
+            const withRegParams = document.getElementById('with-reg-params');
+            if (withRegParams) {
+                withRegParams.style.display = (regMode === 'with') ? 'block' : 'none';
             }
         }
 
@@ -1051,30 +978,33 @@
                 document.getElementById('reg-tab-2'),
                 document.getElementById('reg-tab-3')
             ];
-            
-            containers.forEach((el, i) => {
-                if (el) el.style.display = (i === tabNum - 1) ? 'block' : 'none';
-            });
-            buttons.forEach((el, i) => {
-                if (el) el.classList.toggle('active', i === tabNum - 1);
-            });
+            containers.forEach((el, i) => { if (el) el.style.display = (i === tabNum - 1) ? 'block' : 'none'; });
+            buttons.forEach((el, i) => { if (el) el.classList.toggle('active', i === tabNum - 1); });
         }
 
         function toggleRegularizationParams() {
             const penalty = document.getElementById('regul-type').value;
             const elasticnetParams = document.getElementById('elasticnet-params');
-            if (penalty === 'elasticnet') {
-                elasticnetParams.style.display = 'block';
-            } else {
-                elasticnetParams.style.display = 'none';
-            }
+            if (elasticnetParams) elasticnetParams.style.display = (penalty === 'elasticnet') ? 'block' : 'none';
         }
 
-        function trainRegression() {
+        function toggleTreeAlgoParams() {
+            const algoSelect = document.getElementById('tree-algorithm-select');
+            if (!algoSelect) return;
+            const algo = algoSelect.value;
+            const nestGroup = document.getElementById('param-group-n-estimators');
+            const lrGroup = document.getElementById('param-group-learning-rate');
+            
+            if (nestGroup) nestGroup.style.display = (algo === 'decision_tree') ? 'none' : 'block';
+            if (lrGroup) lrGroup.style.display = (['adaboost', 'gradient_boosting', 'xgboost', 'lightboost', 'catboost'].includes(algo)) ? 'block' : 'none';
+        }
+
+        function trainRegressionUnified() {
             const modelType = document.getElementById('reg-model-type').value;
-            const fitIntercept = document.getElementById('linear-fit-intercept') ? document.getElementById('linear-fit-intercept').checked : true;
-            const cVal = document.getElementById('logistic-c').value;
-            const solver = document.getElementById('logistic-solver').value;
+            const regMode = document.getElementById('reg-mode-dropdown').value;
+            const useReg = (regMode === 'with');
+            const regType = document.getElementById('reg-penalty-type') ? document.getElementById('reg-penalty-type').value : 'lasso';
+            const alpha = document.getElementById('reg-alpha') ? document.getElementById('reg-alpha').value : '0.1';
 
             const loading = document.getElementById('regression-loading');
             const welcome = document.getElementById('regression-welcome');
@@ -1088,9 +1018,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model_type: modelType,
-                    fit_intercept: fitIntercept,
-                    c_val: cVal,
-                    solver: solver
+                    use_regularization: useReg,
+                    reg_type: regType,
+                    alpha: alpha,
+                    c_val: 1.0 / parseFloat(alpha)
                 })
             })
             .then(res => res.json())
@@ -1103,7 +1034,6 @@
                 
                 results.style.display = 'block';
                 
-                // Metrics
                 const metricsContainer = document.getElementById('regression-metrics');
                 metricsContainer.innerHTML = '';
                 for (const [key, value] of Object.entries(data.result.metrics)) {
@@ -1115,18 +1045,16 @@
                     `;
                 }
 
-                // Images
                 document.getElementById('reg-chart-img-1').src = 'data:image/png;base64,' + data.result.chart_main;
                 document.getElementById('reg-chart-img-2').src = 'data:image/png;base64,' + data.result.chart_secondary;
 
-                // Coefficients table
                 const coefTable = document.getElementById('reg-coef-table-body');
                 coefTable.innerHTML = '';
                 data.result.coefficients.forEach(c => {
                     coefTable.innerHTML += `
                         <tr>
                             <td><strong><code>${c.Feature}</code></strong></td>
-                            <td style="color: ${c.Coefficient >= 0 ? '#34d399' : '#f87171'}; font-family: monospace; font-weight: bold;">
+                            <td style="color: ${c.Coefficient >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)'}; font-family: monospace; font-weight: bold;">
                                 ${c.Coefficient >= 0 ? '+' : ''}${c.Coefficient}
                             </td>
                         </tr>
@@ -1134,8 +1062,6 @@
                 });
                 
                 document.getElementById('reg-intercept-val').innerText = data.result.intercept;
-                
-                // Reset active tab
                 switchRegressionChart(1);
             })
             .catch(err => {
@@ -1148,7 +1074,7 @@
             const taskType = document.getElementById('regul-task-type').value;
             const regType = document.getElementById('regul-type').value;
             const alpha = document.getElementById('regul-alpha').value;
-            const l1Ratio = document.getElementById('regul-l1-ratio').value;
+            const l1Ratio = document.getElementById('regul-l1-ratio') ? document.getElementById('regul-l1-ratio').value : '0.5';
 
             const loading = document.getElementById('regularization-loading');
             const welcome = document.getElementById('regularization-welcome');
@@ -1177,7 +1103,6 @@
                 
                 results.style.display = 'block';
                 
-                // Metrics
                 const metricsContainer = document.getElementById('regularization-metrics');
                 metricsContainer.innerHTML = '';
                 for (const [key, value] of Object.entries(data.result.metrics)) {
@@ -1189,27 +1114,26 @@
                     `;
                 }
 
-                // Images
                 document.getElementById('regul-chart-img-main').src = 'data:image/png;base64,' + data.result.chart_main;
                 document.getElementById('regul-chart-img-coef').src = 'data:image/png;base64,' + data.result.chart_coef;
 
-                // Feature stats text
-                const stats = data.result.shrunk_stats;
-                document.getElementById('regul-shrunk-stats').innerHTML = `
-                    🔍 <strong>Features Shrinkage Stats:</strong><br>
-                    • Total inputs: <strong>${stats.total_features}</strong><br>
-                    • Active (non-zero) weights: <strong style="color: #60a5fa;">${stats.active_features}</strong><br>
-                    • Eliminated features (Zeroed): <strong style="color: #f87171;">${stats.eliminated_features}</strong>
-                `;
+                if (data.result.shrunk_stats) {
+                    const stats = data.result.shrunk_stats;
+                    document.getElementById('regul-shrunk-stats').innerHTML = `
+                        🔍 <strong>Feature Weight Shrinkage Metrics:</strong><br>
+                        • Total Input Features: <strong>${stats.total_features}</strong><br>
+                        • Active (Non-zero) Features: <strong style="color: var(--primary-dark);">${stats.active_features}</strong><br>
+                        • Zeroed Features: <strong style="color: var(--status-danger-text);">${stats.eliminated_features}</strong>
+                    `;
+                }
 
-                // Coefficients table
                 const coefTable = document.getElementById('regul-coef-table-body');
                 coefTable.innerHTML = '';
                 data.result.coefficients.forEach(c => {
                     coefTable.innerHTML += `
                         <tr>
                             <td><strong><code>${c.Feature}</code></strong></td>
-                            <td style="color: ${c.Coefficient >= 0 ? '#34d399' : '#f87171'}; font-family: monospace; font-weight: bold;">
+                            <td style="color: ${c.Coefficient >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)'}; font-family: monospace; font-weight: bold;">
                                 ${c.Coefficient >= 0 ? '+' : ''}${c.Coefficient}
                             </td>
                         </tr>
@@ -1224,10 +1148,13 @@
             });
         }
 
-        function trainDecisionTree() {
-            const criterion = document.getElementById('tree-criterion').value;
+        function trainTreeBasedModel() {
+            const algoSelect = document.getElementById('tree-algorithm-select');
+            const algorithm = algoSelect ? algoSelect.value : 'decision_tree';
             const maxDepth = document.getElementById('tree-depth').value;
             const minSplit = document.getElementById('tree-min-split').value;
+            const nEstimators = document.getElementById('tree-n-estimators') ? document.getElementById('tree-n-estimators').value : 100;
+            const learningRate = document.getElementById('tree-learning-rate') ? document.getElementById('tree-learning-rate').value : 0.1;
 
             const loading = document.getElementById('tree-loading');
             const welcome = document.getElementById('tree-welcome');
@@ -1236,13 +1163,15 @@
             loading.style.display = 'flex';
             welcome.style.display = 'none';
 
-            fetch('/api/train/decision-tree', {
+            fetch('/api/train/tree-based', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    criterion: criterion,
+                    algorithm: algorithm,
                     max_depth: maxDepth,
-                    min_samples_split: minSplit
+                    min_samples_split: minSplit,
+                    n_estimators: nEstimators,
+                    learning_rate: learningRate
                 })
             })
             .then(res => res.json())
@@ -1255,7 +1184,10 @@
                 
                 results.style.display = 'block';
                 
-                // Metrics
+                if (data.result.algorithm) {
+                    document.getElementById('selected-algo-title').innerText = data.result.algorithm;
+                }
+                
                 const metricsContainer = document.getElementById('tree-metrics');
                 metricsContainer.innerHTML = '';
                 for (const [key, value] of Object.entries(data.result.metrics)) {
@@ -1267,18 +1199,25 @@
                     `;
                 }
 
-                // Images
                 document.getElementById('tree-chart-img-importance').src = 'data:image/png;base64,' + data.result.chart_importance;
                 document.getElementById('tree-chart-img-tree').src = 'data:image/png;base64,' + data.result.chart_tree;
-
-                // Rules log
                 document.getElementById('tree-walkthrough-log').innerHTML = data.result.rules_text;
+
+                if (algorithm === 'decision_tree') {
+                    document.getElementById('tree-chart-heading').innerText = 'Decision Tree Splits Visualizer (Depth ≤ 3)';
+                } else {
+                    document.getElementById('tree-chart-heading').innerText = 'Model Confusion Matrix Heatmap';
+                }
             })
             .catch(err => {
                 loading.style.display = 'none';
                 alert('An error occurred during training: ' + err);
             });
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            toggleTreeAlgoParams();
+        });
     </script>
 </body>
 </html>

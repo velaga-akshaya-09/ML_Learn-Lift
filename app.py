@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, jsonify
 from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
 from preprocessing import run_preprocessing
-from ml_models import train_regression_model, train_regularized_model, train_decision_tree_model
+from ml_models import train_regression_model, train_regularized_model, train_tree_based_model
 
 app = Flask(__name__)
 
@@ -58,7 +58,6 @@ def eda():
         if cache["df_clean"].empty:
             error = "Data not found or is empty."
         elif cache["charts"] is None:
-            # Generate charts only the first time the page is loaded
             df_sample = cache["df_clean"].sample(n=min(2000, len(cache["df_clean"])), random_state=42)
             cache["charts"] = generate_eda_charts(cache["df_clean"], df_sample)
             
@@ -109,11 +108,13 @@ def regularization():
         error=None
     )
 
+@app.route("/tree-based")
+
 @app.route("/decision-tree")
-def decision_tree():
+def tree_based():
     return render_template(
         "index.html",
-        active="decision-tree",
+        active="tree-based",
         error=None
     )
 
@@ -122,14 +123,22 @@ def api_train_regression():
     try:
         data = request.json or {}
         model_type = data.get("model_type", "linear")
-        fit_intercept = data.get("fit_intercept", True)
+        use_regularization = bool(data.get("use_regularization", False))
+        reg_type = data.get("reg_type", "lasso")
+        alpha = float(data.get("alpha", 1.0))
         c_val = float(data.get("c_val", 1.0))
+        l1_ratio = float(data.get("l1_ratio", 0.5))
+        fit_intercept = bool(data.get("fit_intercept", True))
         solver = data.get("solver", "lbfgs")
         
         result = train_regression_model(
             model_type=model_type,
-            fit_intercept=fit_intercept,
+            use_regularization=use_regularization,
+            reg_type=reg_type,
+            alpha=alpha,
             c_val=c_val,
+            l1_ratio=l1_ratio,
+            fit_intercept=fit_intercept,
             solver=solver
         )
         return jsonify({"success": True, "result": result})
@@ -155,18 +164,25 @@ def api_train_regularization():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
+@app.route("/api/train/tree-based", methods=["POST"])
 @app.route("/api/train/decision-tree", methods=["POST"])
-def api_train_decision_tree():
+def api_train_tree_based():
     try:
         data = request.json or {}
+        algorithm = data.get("algorithm", "decision_tree")
         criterion = data.get("criterion", "gini")
         max_depth = int(data.get("max_depth", 4))
         min_samples_split = int(data.get("min_samples_split", 2))
+        n_estimators = int(data.get("n_estimators", 100))
+        learning_rate = float(data.get("learning_rate", 0.1))
         
-        result = train_decision_tree_model(
+        result = train_tree_based_model(
+            algorithm=algorithm,
             criterion=criterion,
             max_depth=max_depth,
-            min_samples_split=min_samples_split
+            min_samples_split=min_samples_split,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate
         )
         return jsonify({"success": True, "result": result})
     except Exception as e:
@@ -174,4 +190,3 @@ def api_train_decision_tree():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
