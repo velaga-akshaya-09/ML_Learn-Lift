@@ -16,8 +16,7 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     AdaBoostClassifier,
     GradientBoostingClassifier,
-    HistGradientBoostingClassifier,
-    ExtraTreesClassifier
+    HistGradientBoostingClassifier
 )
 from sklearn.metrics import (
     mean_squared_error, r2_score, mean_absolute_error,
@@ -37,12 +36,6 @@ try:
     HAS_LIGHTGBM = True
 except ImportError:
     HAS_LIGHTGBM = False
-
-try:
-    import catboost as cb
-    HAS_CATBOOST = True
-except ImportError:
-    HAS_CATBOOST = False
 
 from load_data import load_data
 
@@ -300,7 +293,7 @@ def train_regularized_model(task_type='regression', reg_type='lasso', alpha=1.0,
         return train_regression_model(model_type='logistic', use_regularization=True, reg_type=reg_type, c_val=c_val, l1_ratio=l1_ratio)
 
 # ============================================================
-# TREE BASED ALGORITHMS ROUTINES (7 ALGORITHMS TOTAL)
+# TREE BASED ALGORITHMS ROUTINES (6 ALGORITHMS TOTAL)
 # ============================================================
 
 def train_tree_based_model(
@@ -312,14 +305,13 @@ def train_tree_based_model(
     learning_rate=0.1
 ):
     """
-    Trains any of the 7 Tree-Based Algorithms specified in handwritten notes:
+    Trains any of the 6 Tree-Based Algorithms specified in handwritten notes:
     1. Decision Tree
     2. Random Forest
     3. AdaBoost
     4. Gradient Boosting
     5. XGBoost
     6. LightBoost (LightGBM)
-    7. CatBoost
     """
     X_train, X_test, y_train_reg, y_test_reg, y_train_clf, y_test_clf, feature_names = prepare_model_data()
     set_light_theme()
@@ -407,25 +399,6 @@ def train_tree_based_model(
                 random_state=42
             )
             algo_name += " (HistGradientBoosting Fallback)"
-            
-    elif algorithm == 'catboost':
-        algo_name = "7. CatBoost"
-        if HAS_CATBOOST:
-            model = cb.CatBoostClassifier(
-                iterations=n_est,
-                depth=min(depth or 6, 16),
-                learning_rate=lr,
-                random_state=42,
-                verbose=0
-            )
-        else:
-            model = ExtraTreesClassifier(
-                n_estimators=n_est,
-                max_depth=depth,
-                min_samples_split=min_split,
-                random_state=42
-            )
-            algo_name += " (ExtraTrees Fallback)"
             
     else:
         model = DecisionTreeClassifier(criterion=criterion, max_depth=depth, min_samples_split=min_split, random_state=42)

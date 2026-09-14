@@ -33,7 +33,7 @@
             <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">3. Preprocessing</a>
             <a href="/regression" class="tab-btn {% if active == 'regression' %}active{% endif %}">4. Linear & Logistic</a>
             <a href="/regularization" class="tab-btn {% if active == 'regularization' %}active{% endif %}">5. Regularization</a>
-            <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">6. Tree-Based Models (7 Algos)</a>
+            <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">6. Tree-Based Models (6 Algos)</a>
         </nav>
 
         {% if active == 'data-loading' %}
@@ -816,7 +816,7 @@
         <!-- 6. TREE BASED ALGORITHMS -->
         <main id="tree-based-tab" class="tab-content active">
             <div class="page-header">
-                <h2>6. Tree-Based Algorithms Suite (7 Algorithms)</h2>
+                <h2>6. Tree-Based Algorithms Suite (6 Algorithms)</h2>
                 <p>Train and compare decision trees and ensemble classifiers to predict student outcome probabilities.</p>
             </div>
 
@@ -825,7 +825,7 @@
                     <h3>Tree Model Selector</h3>
 
                     <div class="form-group">
-                        <label for="tree-algorithm-select" style="color: var(--primary-dark); font-weight: 700;">Select Algorithm (1 of 7)</label>
+                        <label for="tree-algorithm-select" style="color: var(--primary-dark); font-weight: 700;">Select Algorithm (1 of 6)</label>
                         <select id="tree-algorithm-select" class="form-control" onchange="toggleTreeAlgoParams()">
                             <option value="decision_tree">1) Decision Tree</option>
                             <option value="random_forest">2) Random Forest</option>
@@ -833,7 +833,6 @@
                             <option value="gradient_boosting">4) Gradient Boosting</option>
                             <option value="xgboost">5) XGBoost</option>
                             <option value="lightboost">6) LightBoost (LightGBM)</option>
-                            <option value="catboost">7) CatBoost</option>
                         </select>
                     </div>
 
@@ -883,7 +882,7 @@
                     </div>
 
                     <div id="tree-welcome" class="table-container" style="text-align: center; padding: 48px;">
-                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Select algorithm from the 7 options and click "Train Tree Algorithm".</p>
+                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Select algorithm from the 6 options and click "Train Tree Algorithm".</p>
                     </div>
 
                     <div id="tree-results" style="display: none;">
@@ -996,7 +995,7 @@
             const lrGroup = document.getElementById('param-group-learning-rate');
             
             if (nestGroup) nestGroup.style.display = (algo === 'decision_tree') ? 'none' : 'block';
-            if (lrGroup) lrGroup.style.display = (['adaboost', 'gradient_boosting', 'xgboost', 'lightboost', 'catboost'].includes(algo)) ? 'block' : 'none';
+            if (lrGroup) lrGroup.style.display = (['adaboost', 'gradient_boosting', 'xgboost', 'lightboost'].includes(algo)) ? 'block' : 'none';
         }
 
         function trainRegressionUnified() {
