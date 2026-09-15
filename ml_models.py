@@ -284,13 +284,7 @@ def train_regression_model(model_type='linear', use_regularization=False, reg_ty
     
     return response
 
-# Backward compatibility alias
-def train_regularized_model(task_type='regression', reg_type='lasso', alpha=1.0, l1_ratio=0.5):
-    if task_type == 'regression':
-        return train_regression_model(model_type='linear', use_regularization=True, reg_type=reg_type, alpha=alpha, l1_ratio=l1_ratio)
-    else:
-        c_val = 1.0 / alpha if alpha > 0 else 9999.0
-        return train_regression_model(model_type='logistic', use_regularization=True, reg_type=reg_type, c_val=c_val, l1_ratio=l1_ratio)
+
 
 # ============================================================
 # TREE BASED ALGORITHMS ROUTINES (6 ALGORITHMS TOTAL)
