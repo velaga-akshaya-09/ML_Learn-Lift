@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, jsonify
 from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
 from preprocessing import run_preprocessing
-from ml_models import train_regression_model, train_regularized_model, train_tree_based_model
+from ml_models import train_regression_model, train_tree_based_model
 
 app = Flask(__name__)
 
@@ -100,13 +100,7 @@ def regression():
         error=None
     )
 
-@app.route("/regularization")
-def regularization():
-    return render_template(
-        "index.html",
-        active="regularization",
-        error=None
-    )
+
 
 @app.route("/tree-based")
 
@@ -145,24 +139,7 @@ def api_train_regression():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
-@app.route("/api/train/regularization", methods=["POST"])
-def api_train_regularization():
-    try:
-        data = request.json or {}
-        task_type = data.get("task_type", "regression")
-        reg_type = data.get("reg_type", "lasso")
-        alpha = float(data.get("alpha", 1.0))
-        l1_ratio = float(data.get("l1_ratio", 0.5))
-        
-        result = train_regularized_model(
-            task_type=task_type,
-            reg_type=reg_type,
-            alpha=alpha,
-            l1_ratio=l1_ratio
-        )
-        return jsonify({"success": True, "result": result})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+
 
 @app.route("/api/train/tree-based", methods=["POST"])
 @app.route("/api/train/decision-tree", methods=["POST"])

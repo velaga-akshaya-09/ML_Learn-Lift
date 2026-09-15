@@ -32,8 +32,7 @@
             <a href="/eda" class="tab-btn {% if active == 'eda' %}active{% endif %}">2. EDA (5 Tasks)</a>
             <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">3. Preprocessing</a>
             <a href="/regression" class="tab-btn {% if active == 'regression' %}active{% endif %}">4. Linear & Logistic</a>
-            <a href="/regularization" class="tab-btn {% if active == 'regularization' %}active{% endif %}">5. Regularization</a>
-            <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">6. Tree-Based Models (6 Algos)</a>
+            <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">5. Tree-Based Models (6 Algos)</a>
         </nav>
 
         {% if active == 'data-loading' %}
@@ -323,7 +322,6 @@
                 <button class="sub-nav-btn active" onclick="switchPreprocView('missing')">🧪 Missing Values & Imputation</button>
                 <button class="sub-nav-btn" onclick="switchPreprocView('scaling')">📐 Scaling & Standardisation</button>
                 <button class="sub-nav-btn" onclick="switchPreprocView('onehot')">⚡ One-Hot & Ordinal Encodings</button>
-                <button class="sub-nav-btn" onclick="switchPreprocView('target_embed')">🎯 Target & Embedding Encodings</button>
                 <button class="sub-nav-btn" onclick="switchPreprocView('iqr')">✂️ Outlier Detection & Clipping</button>
             </div>
 
@@ -502,55 +500,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 4: TARGET & EMBEDDING ENCODINGS -->
-            <div id="preproc-target_embed-view" class="table-container" style="display: none;">
-                <div class="table-header-title">
-                    <h3>Target & Embedding Encodings</h3>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Target: <code>final_result</code></span>
-                </div>
 
-                <h4 style="color: var(--primary-dark);">1. Target Encoding (Category Target Mean Mapping)</h4>
-                <div class="scrollable">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Category Feature</th>
-                                <th>Category Mapping (Mean Target Value)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for col, info in preprocessing.target_encoding.final_result.items() %}
-                                <tr>
-                                    <td><strong><code>{{ col }}</code></strong></td>
-                                    <td><code>{{ info.mapping }}</code></td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h4 style="color: var(--primary-dark); margin-top: 24px;">2. Embedding-Based Integer ID Encodings</h4>
-                <div class="scrollable">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Categorical Feature</th>
-                                <th>Input Dimension (Unique Categories)</th>
-                                <th>Embedding Dimension</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for col, info in preprocessing.embedding.items() %}
-                                <tr>
-                                    <td><strong><code>{{ col }}</code></strong></td>
-                                    <td>{{ info.embedding_input_dimension }}</td>
-                                    <td><strong style="color: var(--primary);">{{ info.embedding_output_dimension }}</strong></td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
             <!-- SECTION 5: OUTLIERS -->
             <div id="preproc-iqr-view" class="table-container" style="display: none;">
@@ -708,115 +658,11 @@
         </main>
         {% endif %}
 
-        {% if active == 'regularization' %}
-        <!-- 5. REGULARIZATION -->
-        <main id="regularization-tab" class="tab-content active">
-            <div class="page-header">
-                <h2>5. Regularized Regression Analysis</h2>
-                <p>Analyze coefficient shrinkage and feature elimination effects under Lasso ($L_1$), Ridge ($L_2$), and Elastic Net ($L_1 + L_2$) penalties.</p>
-            </div>
-
-            <div class="ml-layout">
-                <aside class="controls-sidebar">
-                    <h3>Regularization Settings</h3>
-
-                    <div class="form-group">
-                        <label for="regul-task-type">Task Target</label>
-                        <select id="regul-task-type" class="form-control">
-                            <option value="regression">Regression (Predict avg_score)</option>
-                            <option value="classification">Classification (Predict success)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="regul-type">Penalty Style</label>
-                        <select id="regul-type" class="form-control" onchange="toggleRegularizationParams()">
-                            <option value="lasso">Lasso (L1 Shrinkage)</option>
-                            <option value="ridge">Ridge (L2 Squared Weight)</option>
-                            <option value="elasticnet">Elastic Net (Combined L1 + L2)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="regul-alpha">Penalty Strength (&alpha;)</label>
-                        <div class="range-slider-container">
-                            <input type="range" id="regul-alpha" min="0.01" max="2.0" step="0.05" value="0.1" oninput="updateSliderValue('regul-alpha-val', this.value)">
-                            <span id="regul-alpha-val" class="range-slider-value">0.1</span>
-                        </div>
-                    </div>
-
-                    <div id="elasticnet-params" style="display: none;">
-                        <div class="form-group">
-                            <label for="regul-l1-ratio">L1 Penalty Ratio</label>
-                            <div class="range-slider-container">
-                                <input type="range" id="regul-l1-ratio" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateSliderValue('regul-l1-val', this.value)">
-                                <span id="regul-l1-val" class="range-slider-value">0.5</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="btn-primary" onclick="trainRegularization()">
-                        <span>🛡️ Train Regularized Model</span>
-                    </button>
-                </aside>
-
-                <section class="results-panel relative-container">
-                    <div id="regularization-loading" class="loading-overlay">
-                        <div class="spinner"></div>
-                    </div>
-
-                    <div id="regularization-welcome" class="table-container" style="text-align: center; padding: 48px;">
-                        <p style="font-size: 1.05rem; color: var(--text-muted); margin: 0;">Select penalty options and click "Train Regularized Model".</p>
-                    </div>
-
-                    <div id="regularization-results" style="display: none;">
-                        <div id="regularization-metrics" class="stats-grid-4"></div>
-
-                        <div class="chart-grid" style="margin-top: 24px;">
-                            <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1rem;">Coefficient Shrinkage Plot</h3>
-                                <div id="regul-chart-container-coef" class="plot-container">
-                                    <img id="regul-chart-img-coef" src="">
-                                </div>
-                                <div id="regul-shrunk-stats" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;"></div>
-                            </div>
-                            
-                            <div class="table-container" style="margin-bottom: 0;">
-                                <h3 style="margin-top: 0; font-size: 1rem;">Performance Evaluation Plot</h3>
-                                <div id="regul-chart-container-main" class="plot-container">
-                                    <img id="regul-chart-img-main" src="">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="table-container" style="margin-top: 24px;">
-                            <h3 style="margin-top: 0; font-size: 1rem;">Model Coefficients Table</h3>
-                            <div class="scrollable">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Feature Name</th>
-                                            <th>Weight / Coefficient</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="regul-coef-table-body"></tbody>
-                                </table>
-                                <div style="margin-top: 14px; font-size: 0.875rem; color: var(--text-muted);">
-                                    Model Intercept: <strong id="regul-intercept-val" style="color: var(--primary-dark);">0.0000</strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-        {% endif %}
-
         {% if active == 'tree-based' or active == 'decision-tree' %}
-        <!-- 6. TREE BASED ALGORITHMS -->
+        <!-- 5. TREE BASED ALGORITHMS -->
         <main id="tree-based-tab" class="tab-content active">
             <div class="page-header">
-                <h2>6. Tree-Based Algorithms Suite (6 Algorithms)</h2>
+                <h2>5. Tree-Based Algorithms Suite (6 Algorithms)</h2>
                 <p>Train and compare decision trees and ensemble classifiers to predict student outcome probabilities.</p>
             </div>
 
@@ -943,7 +789,6 @@
                 'missing': document.getElementById('preproc-missing-view'),
                 'scaling': document.getElementById('preproc-scaling-view'),
                 'onehot': document.getElementById('preproc-onehot-view'),
-                'target_embed': document.getElementById('preproc-target_embed-view'),
                 'iqr': document.getElementById('preproc-iqr-view')
             };
             const btns = document.querySelectorAll('#preprocessing-tab .sub-nav-btn');
@@ -981,11 +826,7 @@
             buttons.forEach((el, i) => { if (el) el.classList.toggle('active', i === tabNum - 1); });
         }
 
-        function toggleRegularizationParams() {
-            const penalty = document.getElementById('regul-type').value;
-            const elasticnetParams = document.getElementById('elasticnet-params');
-            if (elasticnetParams) elasticnetParams.style.display = (penalty === 'elasticnet') ? 'block' : 'none';
-        }
+
 
         function toggleTreeAlgoParams() {
             const algoSelect = document.getElementById('tree-algorithm-select');
@@ -1069,83 +910,7 @@
             });
         }
 
-        function trainRegularization() {
-            const taskType = document.getElementById('regul-task-type').value;
-            const regType = document.getElementById('regul-type').value;
-            const alpha = document.getElementById('regul-alpha').value;
-            const l1Ratio = document.getElementById('regul-l1-ratio') ? document.getElementById('regul-l1-ratio').value : '0.5';
 
-            const loading = document.getElementById('regularization-loading');
-            const welcome = document.getElementById('regularization-welcome');
-            const results = document.getElementById('regularization-results');
-            
-            loading.style.display = 'flex';
-            welcome.style.display = 'none';
-
-            fetch('/api/train/regularization', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    task_type: taskType,
-                    reg_type: regType,
-                    alpha: alpha,
-                    l1_ratio: l1Ratio
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                loading.style.display = 'none';
-                if (!data.success) {
-                    alert('Training failed: ' + data.error);
-                    return;
-                }
-                
-                results.style.display = 'block';
-                
-                const metricsContainer = document.getElementById('regularization-metrics');
-                metricsContainer.innerHTML = '';
-                for (const [key, value] of Object.entries(data.result.metrics)) {
-                    metricsContainer.innerHTML += `
-                        <div class="stat-card">
-                            <h3>${key}</h3>
-                            <p>${value}</p>
-                        </div>
-                    `;
-                }
-
-                document.getElementById('regul-chart-img-main').src = 'data:image/png;base64,' + data.result.chart_main;
-                document.getElementById('regul-chart-img-coef').src = 'data:image/png;base64,' + data.result.chart_coef;
-
-                if (data.result.shrunk_stats) {
-                    const stats = data.result.shrunk_stats;
-                    document.getElementById('regul-shrunk-stats').innerHTML = `
-                        🔍 <strong>Feature Weight Shrinkage Metrics:</strong><br>
-                        • Total Input Features: <strong>${stats.total_features}</strong><br>
-                        • Active (Non-zero) Features: <strong style="color: var(--primary-dark);">${stats.active_features}</strong><br>
-                        • Zeroed Features: <strong style="color: var(--status-danger-text);">${stats.eliminated_features}</strong>
-                    `;
-                }
-
-                const coefTable = document.getElementById('regul-coef-table-body');
-                coefTable.innerHTML = '';
-                data.result.coefficients.forEach(c => {
-                    coefTable.innerHTML += `
-                        <tr>
-                            <td><strong><code>${c.Feature}</code></strong></td>
-                            <td style="color: ${c.Coefficient >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)'}; font-family: monospace; font-weight: bold;">
-                                ${c.Coefficient >= 0 ? '+' : ''}${c.Coefficient}
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                document.getElementById('regul-intercept-val').innerText = data.result.intercept;
-            })
-            .catch(err => {
-                loading.style.display = 'none';
-                alert('An error occurred during training: ' + err);
-            });
-        }
 
         function trainTreeBasedModel() {
             const algoSelect = document.getElementById('tree-algorithm-select');
