@@ -3,6 +3,12 @@ from load_data import load_raw_data, load_data, get_data_summary
 from oulad_eda import generate_eda_charts
 from preprocessing import run_preprocessing
 from ml_models import train_regression_model, train_tree_based_model
+from clustering_models import (
+    run_kmeans_clustering,
+    run_dbscan_clustering,
+    run_hierarchical_clustering,
+    run_density_analysis
+)
 
 app = Flask(__name__)
 
@@ -103,12 +109,20 @@ def regression():
 
 
 @app.route("/tree-based")
-
 @app.route("/decision-tree")
 def tree_based():
     return render_template(
         "index.html",
         active="tree-based",
+        error=None
+    )
+
+@app.route("/clustering-density")
+@app.route("/clustering")
+def clustering_density():
+    return render_template(
+        "index.html",
+        active="clustering-density",
         error=None
     )
 
@@ -139,8 +153,6 @@ def api_train_regression():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
-
-
 @app.route("/api/train/tree-based", methods=["POST"])
 @app.route("/api/train/decision-tree", methods=["POST"])
 def api_train_tree_based():
@@ -161,6 +173,50 @@ def api_train_tree_based():
             n_estimators=n_estimators,
             learning_rate=learning_rate
         )
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/clustering/kmeans", methods=["POST"])
+def api_clustering_kmeans():
+    try:
+        data = request.json or {}
+        k = int(data.get("k", 4))
+        result = run_kmeans_clustering(k=k)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/clustering/dbscan", methods=["POST"])
+def api_clustering_dbscan():
+    try:
+        data = request.json or {}
+        min_samples = int(data.get("min_samples", 5))
+        eps = data.get("eps", None)
+        auto_eps = bool(data.get("auto_eps", True))
+        result = run_dbscan_clustering(min_samples=min_samples, eps=eps, auto_eps=auto_eps)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/clustering/hierarchical", methods=["POST"])
+def api_clustering_hierarchical():
+    try:
+        data = request.json or {}
+        k = int(data.get("k", 3))
+        linkage_criterion = data.get("linkage", "ward")
+        result = run_hierarchical_clustering(k=k, linkage_criterion=linkage_criterion)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+@app.route("/api/clustering/density", methods=["POST"])
+def api_clustering_density():
+    try:
+        data = request.json or {}
+        feature_x = data.get("feature_x", "studied_credits")
+        feature_y = data.get("feature_y", "avg_score")
+        result = run_density_analysis(feature_x=feature_x, feature_y=feature_y)
         return jsonify({"success": True, "result": result})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
