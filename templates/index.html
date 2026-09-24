@@ -33,6 +33,7 @@
             <a href="/preprocessing" class="tab-btn {% if active == 'preprocessing' %}active{% endif %}">3. Preprocessing</a>
             <a href="/regression" class="tab-btn {% if active == 'regression' %}active{% endif %}">4. Linear & Logistic</a>
             <a href="/tree-based" class="tab-btn {% if active == 'tree-based' or active == 'decision-tree' %}active{% endif %}">5. Tree-Based Models (6 Algos)</a>
+            <a href="/clustering-density" class="tab-btn {% if active == 'clustering-density' %}active{% endif %}">6. Clustering & Density</a>
         </nav>
 
         {% if active == 'data-loading' %}
@@ -763,6 +764,264 @@
             </div>
         </main>
         {% endif %}
+
+        {% if active == 'clustering-density' %}
+        <!-- 6. CLUSTERING & DENSITY TAB -->
+        <main id="clustering-tab" class="tab-content active">
+            <div class="page-header">
+                <h2>6. Unsupervised Clustering & Spatial Density Studio</h2>
+                <p>Partition student learning records using K-Means, DBSCAN (with automated Knee eps detection), Hierarchical Agglomerative clustering, and Student Performance Density mapping.</p>
+            </div>
+
+            <!-- Sub-Navigation Pills -->
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" onclick="switchClusterView('kmeans')">⚙️ K-Means Clustering</button>
+                <button class="sub-nav-btn" onclick="switchClusterView('dbscan')">⚡ DBSCAN (Density + Auto-Knee)</button>
+                <button class="sub-nav-btn" onclick="switchClusterView('hierarchical')">🌳 Hierarchical (Dendrogram)</button>
+                <button class="sub-nav-btn" onclick="switchClusterView('density')">🗺️ Student Density Analysis</button>
+            </div>
+
+            <!-- SUB-VIEW 1: K-MEANS CLUSTERING -->
+            <div id="cluster-kmeans-view" class="table-container">
+                <div class="table-header-title" style="margin-bottom: 20px;">
+                    <h3>⚙️ K-Means Configuration & Parameter Tuning</h3>
+                </div>
+
+                <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 24px;">
+                    <div style="flex: 1; min-width: 220px; max-width: 280px;">
+                        <label for="kmeans-k" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading);">Number of Clusters (k):</label>
+                        <input type="number" id="kmeans-k" min="2" max="8" value="4" class="form-control">
+                    </div>
+                    <div>
+                        <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="runKMeansUnified()">
+                            <span>Run K-Means</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div id="kmeans-metrics" class="stats-grid-4" style="margin-bottom: 24px;"></div>
+
+                <!-- Charts -->
+                <div class="chart-grid" style="margin-bottom: 24px;">
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">2D Cluster Scatter Visualization</h4>
+                        <img id="kmeans-chart-scatter-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="kmeans-scatter-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run K-Means" to generate scatter plot.</div>
+                    </div>
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Elbow Method Optimization Curve</h4>
+                        <img id="kmeans-chart-elbow-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="kmeans-elbow-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run K-Means" to generate elbow curve.</div>
+                    </div>
+                </div>
+
+                <!-- Cluster Distribution Table -->
+                <div style="margin-bottom: 24px;">
+                    <h4 style="color: var(--text-heading); margin-bottom: 12px;">Cluster Size Distribution</h4>
+                    <div class="scrollable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cluster Identifier</th>
+                                    <th>Point Count</th>
+                                    <th>Proportion (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kmeans-size-tbody">
+                                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No cluster data generated yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cluster Centroid Values Table -->
+                <div>
+                    <h4 style="color: var(--text-heading); margin-bottom: 12px;">Cluster Centroid Feature Values (Original Scale)</h4>
+                    <div class="scrollable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cluster</th>
+                                    <th>Avg Score (%)</th>
+                                    <th>Studied Credits</th>
+                                    <th>Previous Attempts</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kmeans-centroids-tbody">
+                                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No cluster centroid data generated yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-VIEW 2: DBSCAN (DENSITY + AUTO-KNEE) -->
+            <div id="cluster-dbscan-view" class="table-container" style="display: none;">
+                <div id="dbscan-notice-box" style="background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); padding: 12px 16px; margin-bottom: 20px; border-radius: var(--radius-sm); color: var(--status-warning-text); font-size: 0.9rem;">
+                    <strong>Notice:</strong> DBSCAN executed on a sample of 5,000 records for responsiveness.
+                </div>
+
+                <div class="table-header-title" style="margin-bottom: 20px;">
+                    <h3>⚡ DBSCAN Density Parameters & Auto-Knee &epsilon; Detection</h3>
+                </div>
+
+                <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 24px;">
+                    <div style="flex: 1; min-width: 180px;">
+                        <label for="dbscan-min-samples" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading);">min_samples (Density Threshold):</label>
+                        <input type="number" id="dbscan-min-samples" min="2" max="20" value="5" class="form-control">
+                    </div>
+                    <div style="flex: 1; min-width: 220px;">
+                        <label for="dbscan-eps" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading);">Epsilon (&epsilon;) (Leave blank for Auto-Knee):</label>
+                        <input type="text" id="dbscan-eps" placeholder="Auto-Detecting..." class="form-control">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <input type="checkbox" id="dbscan-auto-eps" checked style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="document.getElementById('dbscan-eps').disabled = this.checked;">
+                        <label for="dbscan-auto-eps" style="font-size: 0.9rem; font-weight: 600; color: var(--text-heading); cursor: pointer;">Auto-Detect Epsilon via Knee Method</label>
+                    </div>
+                    <div>
+                        <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="runDBSCANUnified()">
+                            <span>Run DBSCAN</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div id="dbscan-metrics" class="stats-grid-4" style="margin-bottom: 24px;"></div>
+
+                <!-- Charts -->
+                <div class="chart-grid" style="margin-bottom: 24px;">
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">DBSCAN Density Clusters & Noise Scatter</h4>
+                        <img id="dbscan-chart-scatter-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="dbscan-scatter-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run DBSCAN" to display density clusters.</div>
+                    </div>
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Automated Knee k-Distance Graph</h4>
+                        <img id="dbscan-chart-knee-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="dbscan-knee-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run DBSCAN" to plot k-distance curve.</div>
+                    </div>
+                </div>
+
+                <!-- DBSCAN Breakdown Table -->
+                <div>
+                    <h4 style="color: var(--text-heading); margin-bottom: 12px;">DBSCAN Partition Breakdown</h4>
+                    <div class="scrollable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Partition</th>
+                                    <th>Count</th>
+                                    <th>Proportion (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dbscan-breakdown-tbody">
+                                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No DBSCAN partition data generated yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-VIEW 3: HIERARCHICAL (DENDROGRAM) -->
+            <div id="cluster-hierarchical-view" class="table-container" style="display: none;">
+                <div id="hier-notice-box" style="background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); padding: 12px 16px; margin-bottom: 20px; border-radius: var(--radius-sm); color: var(--status-warning-text); font-size: 0.9rem;">
+                    <strong>Notice:</strong> Hierarchical clustering fitted on a representative sample of 3,000 records.
+                </div>
+
+                <div class="table-header-title" style="margin-bottom: 20px;">
+                    <h3>🌳 Agglomerative Hierarchical Clustering Configuration</h3>
+                </div>
+
+                <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 24px;">
+                    <div style="flex: 1; min-width: 180px;">
+                        <label for="hier-k" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading);">Number of Clusters (k):</label>
+                        <input type="number" id="hier-k" min="2" max="8" value="3" class="form-control">
+                    </div>
+                    <div style="flex: 1; min-width: 220px;">
+                        <label for="hier-linkage" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading);">Linkage Criterion:</label>
+                        <select id="hier-linkage" class="form-control">
+                            <option value="ward">Ward (Minimum Variance)</option>
+                            <option value="complete">Complete Linkage</option>
+                            <option value="average">Average Linkage</option>
+                            <option value="single">Single Linkage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="runHierarchicalUnified()">
+                            <span>Run Hierarchical</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div id="hier-metrics" class="stats-grid-4" style="margin-bottom: 24px;"></div>
+
+                <!-- Charts -->
+                <div class="chart-grid" style="margin-bottom: 24px;">
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Hierarchical Tree Dendrogram (Sample: 150 pts)</h4>
+                        <img id="hier-chart-dendrogram-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="hier-dendrogram-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run Hierarchical" to view tree dendrogram.</div>
+                    </div>
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Agglomerative Cluster Scatter Plot</h4>
+                        <img id="hier-chart-scatter-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="hier-scatter-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Click "Run Hierarchical" to plot cluster scatter.</div>
+                    </div>
+                </div>
+
+                <!-- Hierarchical Breakdown Table -->
+                <div>
+                    <h4 style="color: var(--text-heading); margin-bottom: 12px;">Hierarchical Cluster Breakdown</h4>
+                    <div class="scrollable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cluster Identifier</th>
+                                    <th>Point Count</th>
+                                    <th>Proportion (%)</th>
+                                    <th>Mean Score (%)</th>
+                                    <th>Mean Credits</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hier-breakdown-tbody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hierarchical cluster breakdown generated yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-VIEW 4: DENSITY ANALYSIS -->
+            <div id="cluster-density-view" class="table-container" style="display: none;">
+                <div id="density-notice-box" style="background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); padding: 12px 16px; margin-bottom: 20px; border-radius: var(--radius-sm); color: var(--status-warning-text); font-size: 0.9rem;">
+                    <strong>Notice:</strong> Student Density maps rendered on a representative sample of 5,000 records.
+                </div>
+
+                <div class="table-header-title" style="margin-bottom: 20px;">
+                    <h3>🗺️ Student Concentration & Performance Density Analysis</h3>
+                </div>
+
+                <div class="chart-grid" style="margin-bottom: 24px;">
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Student Score & Credit Density Distribution (KDE Contours)</h4>
+                        <img id="density-chart-kde-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="density-kde-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Loading density contours...</div>
+                    </div>
+                    <div class="plot-container">
+                        <h4 style="margin: 0 0 12px 0; color: var(--text-heading); font-size: 1rem;">Top Geographic Region Concentration (Average Score)</h4>
+                        <img id="density-chart-demographics-img" src="" style="width: 100%; border-radius: 4px; display: none;">
+                        <div id="density-demographics-placeholder" style="padding: 60px 20px; color: var(--text-muted);">Loading regional concentration...</div>
+                    </div>
+                </div>
+
+                <div style="background-color: var(--primary-light); border: 1px solid var(--primary-border); padding: 14px 18px; border-radius: var(--radius-sm); color: var(--primary-dark); font-size: 0.9rem;">
+                    <span id="density-scope-text"><strong>Empirical Scope:</strong> Concentrations reflect historical student academic records within the OULAD dataset observation window.</span>
+                </div>
+            </div>
+        </main>
+        {% endif %}
     </div>
 
     <script>
@@ -981,7 +1240,242 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             toggleTreeAlgoParams();
+            if (document.getElementById('clustering-tab')) {
+                runKMeansUnified();
+            }
         });
+
+        function switchClusterView(viewType) {
+            const views = {
+                'kmeans': document.getElementById('cluster-kmeans-view'),
+                'dbscan': document.getElementById('cluster-dbscan-view'),
+                'hierarchical': document.getElementById('cluster-hierarchical-view'),
+                'density': document.getElementById('cluster-density-view')
+            };
+            const btns = document.querySelectorAll('#clustering-tab .sub-nav-btn');
+            const keys = Object.keys(views);
+            keys.forEach((key, index) => {
+                if (views[key]) views[key].style.display = (key === viewType) ? 'block' : 'none';
+                if (btns[index]) btns[index].classList.toggle('active', key === viewType);
+            });
+
+            if (viewType === 'kmeans' && !window.kmeansLoaded) runKMeansUnified();
+            if (viewType === 'dbscan' && !window.dbscanLoaded) runDBSCANUnified();
+            if (viewType === 'hierarchical' && !window.hierLoaded) runHierarchicalUnified();
+            if (viewType === 'density' && !window.densityLoaded) runDensityUnified();
+        }
+
+        function runKMeansUnified() {
+            const k = document.getElementById('kmeans-k') ? document.getElementById('kmeans-k').value : 4;
+            fetch('/api/clustering/kmeans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ k: parseInt(k) })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('K-Means execution failed: ' + data.error);
+                    return;
+                }
+                window.kmeansLoaded = true;
+                const metricsContainer = document.getElementById('kmeans-metrics');
+                metricsContainer.innerHTML = '';
+                for (const [key, value] of Object.entries(data.result.metrics)) {
+                    metricsContainer.innerHTML += `
+                        <div class="stat-card">
+                            <h3>${key}</h3>
+                            <p>${value}</p>
+                        </div>
+                    `;
+                }
+                
+                const scatterImg = document.getElementById('kmeans-chart-scatter-img');
+                scatterImg.src = 'data:image/png;base64,' + data.result.chart_scatter;
+                scatterImg.style.display = 'block';
+                document.getElementById('kmeans-scatter-placeholder').style.display = 'none';
+
+                const elbowImg = document.getElementById('kmeans-chart-elbow-img');
+                elbowImg.src = 'data:image/png;base64,' + data.result.chart_elbow;
+                elbowImg.style.display = 'block';
+                document.getElementById('kmeans-elbow-placeholder').style.display = 'none';
+
+                const sizeTbody = document.getElementById('kmeans-size-tbody');
+                sizeTbody.innerHTML = '';
+                data.result.size_distribution.forEach(row => {
+                    sizeTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${row.cluster}</strong></td>
+                            <td>${row.count}</td>
+                            <td><span class="badge badge-info">${row.proportion}</span></td>
+                        </tr>
+                    `;
+                });
+
+                const centroidsTbody = document.getElementById('kmeans-centroids-tbody');
+                centroidsTbody.innerHTML = '';
+                data.result.centroids_table.forEach(row => {
+                    centroidsTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${row.cluster}</strong></td>
+                            <td><strong style="color: var(--primary);">${row.avg_score}%</strong></td>
+                            <td>${row.studied_credits}</td>
+                            <td>${row.prev_attempts}</td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(err => alert('Error running K-Means: ' + err));
+        }
+
+        function runDBSCANUnified() {
+            const minSamples = document.getElementById('dbscan-min-samples') ? document.getElementById('dbscan-min-samples').value : 5;
+            const eps = document.getElementById('dbscan-eps') ? document.getElementById('dbscan-eps').value : '';
+            const autoEps = document.getElementById('dbscan-auto-eps') ? document.getElementById('dbscan-auto-eps').checked : true;
+
+            fetch('/api/clustering/dbscan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ min_samples: parseInt(minSamples), eps: eps, auto_eps: autoEps })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('DBSCAN execution failed: ' + data.error);
+                    return;
+                }
+                window.dbscanLoaded = true;
+                if (data.result.notice) {
+                    document.getElementById('dbscan-notice-box').innerText = data.result.notice;
+                }
+
+                if (autoEps && data.result.metrics['Epsilon (eps)']) {
+                    document.getElementById('dbscan-eps').value = data.result.metrics['Epsilon (eps)'];
+                }
+
+                const metricsContainer = document.getElementById('dbscan-metrics');
+                metricsContainer.innerHTML = '';
+                for (const [key, value] of Object.entries(data.result.metrics)) {
+                    metricsContainer.innerHTML += `
+                        <div class="stat-card">
+                            <h3>${key}</h3>
+                            <p>${value}</p>
+                        </div>
+                    `;
+                }
+
+                const scatterImg = document.getElementById('dbscan-chart-scatter-img');
+                scatterImg.src = 'data:image/png;base64,' + data.result.chart_scatter;
+                scatterImg.style.display = 'block';
+                document.getElementById('dbscan-scatter-placeholder').style.display = 'none';
+
+                const kneeImg = document.getElementById('dbscan-chart-knee-img');
+                kneeImg.src = 'data:image/png;base64,' + data.result.chart_knee;
+                kneeImg.style.display = 'block';
+                document.getElementById('dbscan-knee-placeholder').style.display = 'none';
+
+                const bdTbody = document.getElementById('dbscan-breakdown-tbody');
+                bdTbody.innerHTML = '';
+                data.result.breakdown.forEach(row => {
+                    bdTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${row.partition}</strong></td>
+                            <td>${row.count}</td>
+                            <td><span class="badge ${row.partition.includes('Noise') ? 'badge-warning' : 'badge-success'}">${row.proportion}</span></td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(err => alert('Error running DBSCAN: ' + err));
+        }
+
+        function runHierarchicalUnified() {
+            const k = document.getElementById('hier-k') ? document.getElementById('hier-k').value : 3;
+            const linkage = document.getElementById('hier-linkage') ? document.getElementById('hier-linkage').value : 'ward';
+
+            fetch('/api/clustering/hierarchical', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ k: parseInt(k), linkage: linkage })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Hierarchical clustering failed: ' + data.error);
+                    return;
+                }
+                window.hierLoaded = true;
+                if (data.result.notice) {
+                    document.getElementById('hier-notice-box').innerText = data.result.notice;
+                }
+
+                const metricsContainer = document.getElementById('hier-metrics');
+                metricsContainer.innerHTML = '';
+                for (const [key, value] of Object.entries(data.result.metrics)) {
+                    metricsContainer.innerHTML += `
+                        <div class="stat-card">
+                            <h3>${key}</h3>
+                            <p>${value}</p>
+                        </div>
+                    `;
+                }
+
+                const dendrogramImg = document.getElementById('hier-chart-dendrogram-img');
+                dendrogramImg.src = 'data:image/png;base64,' + data.result.chart_dendrogram;
+                dendrogramImg.style.display = 'block';
+                document.getElementById('hier-dendrogram-placeholder').style.display = 'none';
+
+                const scatterImg = document.getElementById('hier-chart-scatter-img');
+                scatterImg.src = 'data:image/png;base64,' + data.result.chart_scatter;
+                scatterImg.style.display = 'block';
+                document.getElementById('hier-scatter-placeholder').style.display = 'none';
+
+                const bdTbody = document.getElementById('hier-breakdown-tbody');
+                bdTbody.innerHTML = '';
+                data.result.breakdown.forEach(row => {
+                    bdTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${row.cluster}</strong></td>
+                            <td>${row.count}</td>
+                            <td><span class="badge badge-info">${row.proportion}</span></td>
+                            <td><strong style="color: var(--primary);">${row.avg_score}%</strong></td>
+                            <td>${row.avg_credits}</td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(err => alert('Error running Hierarchical clustering: ' + err));
+        }
+
+        function runDensityUnified() {
+            fetch('/api/clustering/density', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) return;
+                window.densityLoaded = true;
+                if (data.result.notice) {
+                    document.getElementById('density-notice-box').innerText = data.result.notice;
+                }
+                if (data.result.scope_text) {
+                    document.getElementById('density-scope-text').innerHTML = '<strong>Empirical Scope:</strong> ' + data.result.scope_text;
+                }
+
+                const kdeImg = document.getElementById('density-chart-kde-img');
+                kdeImg.src = 'data:image/png;base64,' + data.result.chart_density;
+                kdeImg.style.display = 'block';
+                document.getElementById('density-kde-placeholder').style.display = 'none';
+
+                const demoImg = document.getElementById('density-chart-demographics-img');
+                demoImg.src = 'data:image/png;base64,' + data.result.chart_demographics;
+                demoImg.style.display = 'block';
+                document.getElementById('density-demographics-placeholder').style.display = 'none';
+            })
+            .catch(err => console.error('Error loading density analysis:', err));
+        }
     </script>
 </body>
 </html>
